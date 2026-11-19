@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     const gemini = Deno.env.get("GEMINI_API_KEY");
     const claude = Deno.env.get("ANTHROPIC_API_KEY");
     if (gemini) {
-      const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
+      const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.8-flash";
       const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: "POST",
         headers: { "x-goog-api-key": gemini, "content-type": "application/json" },
