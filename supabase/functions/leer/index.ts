@@ -29,17 +29,25 @@ Deno.serve(async (req) => {
     const gemini = Deno.env.get("GEMINI_API_KEY");
     const claude = Deno.env.get("ANTHROPIC_API_KEY");
     if (gemini) {
-      const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.8-flash";
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-        method: "POST",
-        headers: { "x-goog-api-key": gemini, "content-type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ inline_data: { mime_type: "image/jpeg", data: image } }, { text: prompt }] }],
-          generationConfig: { responseMimeType: "application/json", temperature: 0 },
-        }),
+      // Si Gemini está saturado (429/503), reintenta y prueba el modelo de respaldo (GEMINI_FALLBACK_MODEL)
+      const models = [Deno.env.get("GEMINI_MODEL") ?? "gemini-3.8-flash", Deno.env.get("GEMINI_FALLBACK_MODEL")].filter(Boolean) as string[];
+      const body = JSON.stringify({
+        contents: [{ parts: [{ inline_data: { mime_type: "image/jpeg", data: image } }, { text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json", temperature: 0 },
       });
-      const j = await r.json();
-      if (!r.ok) return json({ error: "ia", detail: j?.error?.message ?? r.status }, 502);
+      let r: Response | null = null, j: any = null;
+      outer: for (const model of models) {
+        for (let attempt = 0; attempt < 3; attempt++) {
+          r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+            method: "POST", headers: { "x-goog-api-key": gemini, "content-type": "application/json" }, body,
+          });
+          j = await r.json();
+          if (r.ok) break outer;
+          if (r.status !== 429 && r.status !== 503 && r.status !== 500) break;
+          await new Promise((res) => setTimeout(res, 1500 * (attempt + 1) + Math.random() * 500));
+        }
+      }
+      if (!r || !r.ok) return json({ error: "ia", detail: j?.error?.message ?? r?.status }, 502);
       text = (j.candidates?.[0]?.content?.parts ?? []).map((p: { text?: string }) => p.text ?? "").join("");
     } else if (claude) {
       const client = new Anthropic({ apiKey: claude });
