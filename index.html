@@ -177,9 +177,23 @@ nav.tabs button[aria-selected="true"]{color:var(--accent)}
 window.startApp = () => {
 const CATS = [
   ["Lácteos","#4C86C6"],["Cárnicos","#C0443A"],["Verduras","#3E9A4F"],["Frutas","#D9822B"],["Panadería","#B5893F"],
-  ["Almacén","#8C6A3F"],["Bebidas","#7B5CC4"],["Limpieza","#2A9BA0"],["Salud","#D04B6B"],["Perfumería","#C45C9A"],["Otros","#7D8A80"]];
+  ["Almacén","#8C6A3F"],["Bebidas","#7B5CC4"],["Limpieza","#2A9BA0"],["Salud","#D04B6B"],["Aseo personal","#C45C9A"],["Perfumería","#9C4F86"],["Hogar","#5B7A8C"],["Dulces","#E0679A"],["Otros","#7D8A80"]];
+const PAYERS = ["Diego","Shirli"];
+let settingsDoc = null;
+const BASE_CATS = CATS.slice();
 const SEC_NAMES = CATS.map(c=>c[0]);
 const CAT_COLOR = Object.fromEntries(CATS);
+const EXTRA_COLORS = ["#6D8B3A","#B8862B","#4E6FAE","#A0522D","#3A8F7A","#8E5BB5","#C2554F","#5F7F99"];
+let customSecs = [];
+function applySettings(st){
+  customSecs = (st && Array.isArray(st.sections)) ? st.sections.filter(x=>typeof x==="string"&&x.trim()) : [];
+  const base = BASE_CATS.filter(c=>c[0]!=="Otros");
+  const extra = customSecs.filter(n=>!base.some(c=>key(c[0])===key(n))).map((n,i)=>[n,EXTRA_COLORS[i%EXTRA_COLORS.length]]);
+  const all = [...base, ...extra, ["Otros","#7D8A80"]];
+  CATS.splice(0, CATS.length, ...all); SEC_NAMES.splice(0, SEC_NAMES.length, ...all.map(c=>c[0]));
+  for(const k in CAT_COLOR) delete CAT_COLOR[k]; Object.assign(CAT_COLOR, Object.fromEntries(all));
+  if(st && Array.isArray(st.payers) && st.payers.length) PAYERS.splice(0, PAYERS.length, ...st.payers);
+}
 const ROLES = ["Papá","Mamá","Hijo/a","Empleada","Otro"];
 const STORES = ["Superseis","Stock","Areté","Casa Rica","Biggie","Salemma","Real","Los Jardines","El Pueblo","Gran Vía","Fortis","Pueblo","Verdulería del barrio","Carnicería del barrio","Despensa del barrio"];
 const CUR = {code:"PYG", sym:"Gs.", locale:"es-PY", dec:0};
@@ -254,10 +268,10 @@ function renderLista(){
   const pending = items.filter(i=>!i.done), done = items.filter(i=>i.done);
   let total=0, priced=0;
   for(const i of pending){ const b = bestFor(idx,i.name); if(b){ total += b.price*qtyNum(i.qty); priced++; } }
-  const cats = ["Todas", ...CATS.map(c=>c[0]).filter(c=>pending.some(i=>i.cat===c))];
+  const cats = ["Todas", ...CATS.map(c=>c[0]).filter(c=>pending.some(i=>(SEC_NAMES.includes(i.cat)?i.cat:"Otros")===c))];
   if(!cats.includes(filterCat)) filterCat="Todas";
-  const shown = pending.filter(i=>filterCat==="Todas"||i.cat===filterCat);
-  const groups = CATS.map(([c,col])=>({c,col,list:shown.filter(i=>(i.cat||"Otros")===c).sort((a,b)=>a.at-b.at)})).filter(g=>g.list.length);
+  const shown = pending.filter(i=>filterCat==="Todas"||(SEC_NAMES.includes(i.cat)?i.cat:"Otros")===filterCat);
+  const groups = CATS.map(([c,col])=>({c,col,list:shown.filter(i=>(SEC_NAMES.includes(i.cat)?i.cat:"Otros")===c).sort((a,b)=>a.at-b.at)})).filter(g=>g.list.length);
   const names = [...new Set([...items.map(i=>i.name), ...prices.map(p=>p.product)])];
   return `
   <div class="summary">
@@ -344,6 +358,14 @@ function renderFamilia(){
       <li>En el celu, desde el menú del navegador, toquen <b>Agregar a pantalla de inicio</b> para tenerla como app.</li>
     </ol>
   </div></div>
+  ${isAdmin()?`<div class="card" style="padding:14px;display:flex;flex-direction:column;gap:10px">
+    <div class="label">Tipos de mercadería</div>
+    <div class="chips" style="flex-wrap:wrap">${SEC_NAMES.map(n=>`<span class="chip" style="cursor:default;display:inline-flex;gap:4px;align-items:center"><span class="dot" style="background:${CAT_COLOR[n]}"></span>${esc(n)}${customSecs.some(c=>key(c)===key(n))?`<button class="x" data-delsec="${esc(n)}" aria-label="Quitar ${esc(n)}">×</button>`:""}</span>`).join("")}</div>
+    <form id="secForm" style="display:flex;gap:8px" autocomplete="off"><input id="secName" placeholder="Nuevo tipo (ej: Mascotas)" maxlength="24" aria-label="Nuevo tipo de mercadería"><button class="btn" type="submit">Agregar</button></form>
+    <div class="label" style="margin-top:6px">Quién puede pagar</div>
+    <div class="chips" style="flex-wrap:wrap">${PAYERS.map(n=>`<span class="chip" style="cursor:default">${esc(n)}${PAYERS.length>1?`<button class="x" data-delpayer="${esc(n)}" aria-label="Quitar ${esc(n)}">×</button>`:""}</span>`).join("")}</div>
+    <form id="payerForm" style="display:flex;gap:8px" autocomplete="off"><input id="payerName" placeholder="Agregar persona" maxlength="24" aria-label="Persona que paga"><button class="btn" type="submit">Agregar</button></form>
+  </div>`:""}
   <button class="btn ghost" id="logoutBtn">Cerrar sesión</button>`;
 }
 
@@ -380,7 +402,7 @@ function renderCompras(){
   ${dashboard()}
   ${list.length?`<div class="card">${list.map(p=>`<button class="purchase" data-purchase="${p.id}">
       <div class="info"><div style="font-weight:700;overflow-wrap:anywhere">${esc(p.store||"Comercio sin nombre")}${p.branch?` <span class="hint">· ${esc(p.branch)}</span>`:""}</div>
-      <div class="hint">${fmtDate(p.date)}${p.time?" · "+esc(p.time)+" h":""} · ${(p.lines||[]).length} productos · ${esc(nameOf(p.by))}</div></div>
+      <div class="hint">${fmtDate(p.date)}${p.time?" · "+esc(p.time)+" h":""} · ${(p.lines||[]).length} productos${p.payer?` · pagó ${esc(p.payer)}`:""}</div></div>
       <div class="amt">${money.format(+p.total||0)}</div></button>`).join("")}</div>`
   : `<div class="card"><div class="empty"><b>Todavía no hay compras</b>Después de ir al súper, sacale una foto al ticket. La app anota cada producto con su cantidad y precio, y la fecha, hora y lugar de la compra.</div></div>`}`;
 }
@@ -396,7 +418,7 @@ async function shrink(file){
   } finally { URL.revokeObjectURL(url); }
 }
 
-const EXTRACT_PROMPT = `Sos un lector de tickets y facturas de supermercados de Paraguay (en guaraníes, Gs.). Leé la imagen adjunta y devolvé SOLO un objeto JSON, sin texto extra, con esta forma:
+const EXTRACT_PROMPT = () => `Sos un lector de tickets y facturas de supermercados de Paraguay (en guaraníes, Gs.). Leé la imagen adjunta y devolvé SOLO un objeto JSON, sin texto extra, con esta forma:
 {"store": "nombre del comercio o cadena (ej: Coto, Carrefour, Día)", "branch": "sucursal, número o dirección si aparece, si no \\"\\"", "date": "AAAA-MM-DD", "time": "HH:MM en 24 h", "total": número final pagado, "discount": número positivo con la suma de descuentos aplicados al total de la compra al final del ticket (o 0), "lines": [{"desc": "descripción del producto como figura", "name": "nombre genérico y claro para comparar entre comercios: producto, marca y tamaño (ej: Leche entera La Serenísima 1 L)", "sec": "una de: ${SEC_NAMES.join(", ")}", "qty": número, "unit": número precio unitario, "total": número total de la línea}]}
 Reglas:
 - En los tickets el punto separa miles y los guaraníes no tienen decimales: 16.050 es 16050 y 235.983 es 235983. Devolvé los números como número JSON sin separadores (16050). Las cantidades por peso usan coma o punto decimal y son chicas (0,245 kg es 0.245).
@@ -427,7 +449,7 @@ async function onPhoto(file){
     });
   let data;
   try{
-    data = await sample.json(EXTRACT_PROMPT,{images:[blob],signal:scanCtl.signal,modelTier:"default"});
+    data = await sample.json(EXTRACT_PROMPT(),{images:[blob],signal:scanCtl.signal,modelTier:"default"});
   }catch(e){
     if(e && e.code==="cancelled") return;
     closeSheet();
@@ -453,6 +475,7 @@ function reviewSheet(t, blob){
     <form id="rf" autocomplete="off" style="display:flex;flex-direction:column;gap:10px">
       <div class="grid2"><input id="rfStore" value="${esc(t.store)}" placeholder="Supermercado" list="dlRS" required maxlength="60" aria-label="Supermercado">
       <input id="rfBranch" value="${esc(t.branch)}" placeholder="Sucursal / dirección" maxlength="80" aria-label="Sucursal"></div>
+      <div><div class="label" style="margin-bottom:6px">¿Quién paga?</div><div class="chips" id="rfPayer">${PAYERS.map(n=>`<button type="button" class="chip" data-payer="${esc(n)}" aria-pressed="${n===t.payer}">${esc(n)}</button>`).join("")}</div></div>
       <datalist id="dlRS">${stores.map(s=>`<option value="${esc(s)}">`).join("")}</datalist>
       <div class="grid2"><input id="rfDate" type="date" value="${esc(t.date)}" required aria-label="Fecha"><input id="rfTime" type="time" value="${esc(t.time)}" aria-label="Hora"></div>
       <div class="label">Productos</div>
@@ -476,6 +499,9 @@ function reviewSheet(t, blob){
       box.addEventListener("input",e=>{ const r=e.target.closest(".line"); const f=e.target.dataset.f; if(f==="desc") r.dataset.name="";
         if(f==="qty"||f==="unit"){ const q=parseAR(r.querySelector('[data-f="qty"]').value)||1, u=parseAR(r.querySelector('[data-f="unit"]').value); r.querySelector('[data-f="total"]').value=num2(q*u); }
         sum(); });
+      let payer = t.payer || PAYERS.find(n=>key(n)===key((members[myId]||{}).name)) || "";
+      const paint=()=>scrim.querySelectorAll("[data-payer]").forEach(b=>b.setAttribute("aria-pressed", b.dataset.payer===payer));
+      scrim.querySelectorAll("[data-payer]").forEach(b=>b.onclick=()=>{ payer=b.dataset.payer; paint(); }); paint();
       document.getElementById("rfDisc").addEventListener("input",sum);
       box.addEventListener("click",e=>{ const b=e.target.closest("[data-rm]"); if(b){ b.closest(".line").remove(); sum(); } });
       document.getElementById("rfAdd").onclick=()=>{ box.insertAdjacentHTML("beforeend",lineHtml({desc:"",qty:1,unit:0,total:0,sec:"Otros"},box.children.length)); box.lastElementChild.querySelector("input").focus(); };
@@ -483,6 +509,7 @@ function reviewSheet(t, blob){
       document.getElementById("rf").onsubmit=async e=>{
         e.preventDefault(); if(!needDb()) return;
         let lines=read(); if(!lines.length){ toast("Agregá al menos un producto."); return; }
+        if(!payer){ toast("Elegí quién paga la compra."); document.getElementById("rfPayer").scrollIntoView({block:"center"}); return; }
         const sub=lines.reduce((a,l)=>a+l.total,0), disc=discOf();
         const pct = disc>0&&sub>0 ? Math.min(disc/sub,1) : 0;
         if(pct) lines=lines.map(l=>({...l,listUnit:l.unit,listTotal:l.total,unit:Math.round(l.unit*(1-pct)*100)/100,total:Math.round(l.total*(1-pct)*100)/100}));
@@ -490,7 +517,7 @@ function reviewSheet(t, blob){
         let photo=null;
         if(blob && assets){ try{ photo=(await assets.upload(blob)).id; }catch(err){ console.warn(err); } }
         const date=document.getElementById("rfDate").value, time=document.getElementById("rfTime").value;
-        const doc={store:document.getElementById("rfStore").value.trim(),branch:document.getElementById("rfBranch").value.trim(),date,time,ts:tsOf(date,time),
+        const doc={payer,store:document.getElementById("rfStore").value.trim(),branch:document.getElementById("rfBranch").value.trim(),date,time,ts:tsOf(date,time),
           total:Math.round(lines.reduce((a,l)=>a+l.total,0)*100)/100,ticketTotal:t.total||null,discount:disc||0,discountPct:Math.round(pct*10000)/100,lines,photo,by:myId,at:Date.now()};
         try{
           await db.collection("purchases").add(doc);
@@ -509,7 +536,7 @@ function purchaseSheet(id){
   const p=purchases.find(x=>x.id===id); if(!p) return;
   let armed=false;
   openSheet(`<h2>${esc(p.store||"Compra")}</h2>
-    <div class="hint">${p.branch?esc(p.branch)+" · ":""}${fmtDate(p.date)}${p.time?" · "+esc(p.time)+" h":""} · cargó ${esc(nameOf(p.by))}</div>
+    <div class="hint">${p.branch?esc(p.branch)+" · ":""}${fmtDate(p.date)}${p.time?" · "+esc(p.time)+" h":""} ${p.payer?` · pagó <b>${esc(p.payer)}</b>`:""} · cargó ${esc(nameOf(p.by))}</div>
     <div>${(p.lines||[]).map(l=>`<div class="rline"><span style="min-width:0;overflow-wrap:anywhere">${esc(l.desc)}<br><span class="hint">${num2(l.qty)} × ${money.format(l.unit||0)}${l.listUnit?` (lista ${money.format(l.listUnit)})`:""}</span></span><span class="p">${money.format(l.total||0)}</span></div>`).join("")}</div>
     ${p.discount?`<div class="hint">Incluye descuento de ${money.format(p.discount)} (${String(p.discountPct).replace(".",",")}%) repartido en cada producto.</div>`:""}
     <div class="totrow"><span>Total</span><span>${money.format(+p.total||0)}</span></div>
@@ -551,6 +578,8 @@ function dashboard(){
     </div>
     <div style="overflow-x:auto;margin-top:10px"><svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W*1.4}px;display:block" role="img" aria-label="Gasto de los últimos 6 meses">
       <line x1="0" x2="${W}" y1="${H-bot}" y2="${H-bot}" stroke="var(--line)"/>${bars}</svg></div>
+    ${(()=>{ const pp={}; for(const p of purchases) if((p.date||"").startsWith(cur.ym)) pp[p.payer||"Sin indicar"]=(pp[p.payer||"Sin indicar"]||0)+(+p.total||0);
+      const e=Object.entries(pp).sort((a,b)=>b[1]-a[1]); return e.length?`<div class="label" style="margin-top:12px;margin-bottom:6px">Quién pagó este mes</div><div style="display:flex;gap:8px;flex-wrap:wrap">${e.map(([n,v])=>`<div class="chip" style="cursor:default">${esc(n)}: <b>${money.format(v)}</b></div>`).join("")}</div>`:""; })()}
     ${secList.length?`<div class="label" style="margin-top:12px;margin-bottom:6px">Por sección este mes</div>
       ${secList.map(([s,v])=>`<div style="display:grid;grid-template-columns:88px 1fr auto;gap:8px;align-items:center;font-size:.85rem;padding:3px 0">
         <span>${esc(s)}</span><span style="background:var(--bg);border-radius:4px;height:10px;overflow:hidden"><span style="display:block;height:100%;width:${(v/secMax*100).toFixed(1)}%;background:${CAT_COLOR[s]||"#7D8A80"}"></span></span>
@@ -764,6 +793,11 @@ function bindView(){
   view.querySelectorAll("[data-purchase]").forEach(b=>b.onclick=()=>purchaseSheet(b.dataset.purchase));
   const np=document.getElementById("newPrice"); if(np) np.onclick=()=>priceSheet(priceSearch);
   view.querySelectorAll("[data-delprice]").forEach(b=>b.onclick=()=>delPrice(b.dataset.delprice));
+  const saveSettings=async patch=>{ if(!needDb()) return; const cur={sections:customSecs.slice(),payers:PAYERS.slice(),...(settingsDoc||{})}; try{ await db.doc("promos/_ajustes").set({...cur,...patch}); }catch(e){ writeErr(e); } };
+  const sf=document.getElementById("secForm"); if(sf) sf.onsubmit=e=>{ e.preventDefault(); const n=document.getElementById("secName").value.trim(); if(!n) return; if(SEC_NAMES.some(x=>key(x)===key(n))){ toast("Ese tipo ya existe"); return; } saveSettings({sections:[...customSecs,n]}); toast(`Se agregó "${n}"`); };
+  view.querySelectorAll("[data-delsec]").forEach(b=>b.onclick=()=>saveSettings({sections:customSecs.filter(x=>key(x)!==key(b.dataset.delsec))}));
+  const pf2=document.getElementById("payerForm"); if(pf2) pf2.onsubmit=e=>{ e.preventDefault(); const n=document.getElementById("payerName").value.trim(); if(!n||PAYERS.some(x=>key(x)===key(n))) return; saveSettings({payers:[...PAYERS,n]}); };
+  view.querySelectorAll("[data-delpayer]").forEach(b=>b.onclick=()=>saveSettings({payers:PAYERS.filter(x=>x!==b.dataset.delpayer)}));
   const lo=document.getElementById("logoutBtn"); if(lo) lo.onclick=()=>window.CANASTA_LOGOUT&&window.CANASTA_LOGOUT();
   const em=document.getElementById("editMe"); if(em) em.onclick=()=>profileSheet();
 }
@@ -914,7 +948,8 @@ render();
   const fail = e => { console.warn(e); clearTimeout(timer); connected=null; render(); };
   db.collection("items").onSnapshot(s=>{ items=s.docs.map(d=>({id:d.id,...d.data()})); done("items")(s); render(); refreshProfiles(); }, fail);
   db.collection("prices").onSnapshot(s=>{ prices=s.docs.map(d=>({id:d.id,...d.data()})); done("prices")(s); render(); refreshProfiles(); }, fail);
-  db.collection("promos").onSnapshot(s=>{ promos=s.docs.map(d=>({id:d.id,...d.data()})); render(); }, e=>console.warn(e));
+  db.collection("promos").onSnapshot(s=>{ const st=s.docs.find(d=>d.id==="_ajustes"); settingsDoc=st?st.data():null; applySettings(settingsDoc);
+    promos=s.docs.filter(d=>d.id!=="_ajustes").map(d=>({id:d.id,...d.data()})); render(); }, e=>console.warn(e));
   db.doc("config/join").onSnapshot(d=>{ joinCode=d.exists?(d.data().code||""):""; render(); }, e=>console.warn(e));
   db.doc("config/admins").onSnapshot(d=>{ admins=(d.exists&&Array.isArray(d.data().ids))?d.data().ids:[]; render(); }, e=>console.warn(e));
   db.collection("purchases").onSnapshot(s=>{ purchases=s.docs.map(d=>({id:d.id,...d.data()})); done("purchases")(s); render(); refreshProfiles(); }, fail);
