@@ -389,10 +389,10 @@ async function shrink(file){
   const url = URL.createObjectURL(file);
   try{
     const img = await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=url; });
-    const sc=Math.min(1, 1600/img.naturalWidth, 4000/img.naturalHeight);
+    const sc=Math.min(1, 1100/img.naturalWidth, 3000/img.naturalHeight);
     const c=document.createElement("canvas"); c.width=Math.round(img.naturalWidth*sc); c.height=Math.round(img.naturalHeight*sc);
     c.getContext("2d").drawImage(img,0,0,c.width,c.height);
-    return await new Promise(r=>c.toBlob(r,"image/jpeg",0.9));
+    return await new Promise(r=>c.toBlob(r,"image/jpeg",0.82));
   } finally { URL.revokeObjectURL(url); }
 }
 
@@ -419,10 +419,11 @@ async function onPhoto(file){
   openSheet(`<h2>Leyendo el ticket…</h2>
     <img class="receipt-img" src="${previewUrl}" alt="Foto del ticket" style="max-height:38vh;object-fit:contain">
     <div class="spinner" aria-hidden="true"></div>
-    <div class="hint" style="text-align:center" id="scanMsg">Esto tarda entre 20 segundos y un minuto.</div>
+    <div class="hint" style="text-align:center" id="scanMsg">Leyendo…</div>
     <div class="btns"><button class="btn ghost" id="scanStop">Cancelar</button></div>`, scrim=>{
       scrim.dataset.locked="1";
       document.getElementById("scanStop").onclick=()=>{ scanCtl.abort(); closeSheet(); };
+      const t0=Date.now(), msgEl=document.getElementById("scanMsg"); const iv=setInterval(()=>{ if(!document.body.contains(msgEl)) return clearInterval(iv); msgEl.textContent=`Leyendo… ${Math.round((Date.now()-t0)/1000)} s`; },1000);
     });
   let data;
   try{

@@ -31,18 +31,25 @@ Deno.serve(async (req) => {
     if (gemini) {
       // Si Gemini está saturado (429/503), reintenta y prueba el modelo de respaldo (GEMINI_FALLBACK_MODEL)
       const models = [Deno.env.get("GEMINI_MODEL") ?? "gemini-3.8-flash", Deno.env.get("GEMINI_FALLBACK_MODEL")].filter(Boolean) as string[];
-      const body = JSON.stringify({
+      // Pensar poco = respuesta más rápida. Si el modelo no acepta el ajuste, se reintenta sin él.
+      const thinking = Deno.env.get("GEMINI_THINKING") ?? "low";
+      const makeBody = (withThinking: boolean) => JSON.stringify({
         contents: [{ parts: [{ inline_data: { mime_type: "image/jpeg", data: image } }, { text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json", temperature: 0 },
+        generationConfig: {
+          responseMimeType: "application/json", temperature: 0,
+          ...(withThinking && thinking !== "off" ? { thinkingConfig: { thinkingLevel: thinking } } : {}),
+        },
       });
+      let useThinking = true;
       let r: Response | null = null, j: any = null;
       outer: for (const model of models) {
         for (let attempt = 0; attempt < 3; attempt++) {
           r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-            method: "POST", headers: { "x-goog-api-key": gemini, "content-type": "application/json" }, body,
+            method: "POST", headers: { "x-goog-api-key": gemini, "content-type": "application/json" }, body: makeBody(useThinking),
           });
           j = await r.json();
           if (r.ok) break outer;
+          if (r.status === 400 && useThinking && /thinking/i.test(j?.error?.message ?? "")) { useThinking = false; attempt--; continue; }
           if (r.status !== 429 && r.status !== 503 && r.status !== 500) break;
           await new Promise((res) => setTimeout(res, 1500 * (attempt + 1) + Math.random() * 500));
         }
