@@ -1,0 +1,926 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Canasta Familiar</title>
+<meta name="description" content="Compras de la familia: tickets, precios, promos y dónde conviene comprar.">
+<meta name="theme-color" content="#1E6A44">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>*,*::before,*::after{box-sizing:border-box}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one-column phone app; sticky header, scrolling list, fixed bottom tabs. Price tags as the signature shape. */
+:root{
+  --bg:#F2F4EE; --surface:#FFFFFF; --ink:#17241B; --muted:#5B695E; --line:#DBE2D7;
+  --accent:#1E6A44; --accent-soft:#E1EFE5; --tag:#F3C431; --tag-ink:#352900; --danger:#B03E28; --warn:#9A6200;
+  --display:"Bricolage Grotesque", "Figtree", system-ui, sans-serif;
+  --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1611; --surface:#16211A; --ink:#E6EEE7; --muted:#97A89B; --line:#283A2E;
+  --accent:#5DC08A; --accent-soft:#1C3325; --tag:#E6B823; --tag-ink:#271E00; --danger:#E77A62; --warn:#E0A440; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1611; --surface:#16211A; --ink:#E6EEE7; --muted:#97A89B; --line:#283A2E;
+  --accent:#5DC08A; --accent-soft:#1C3325; --tag:#E6B823; --tag-ink:#271E00; --danger:#E77A62; --warn:#E0A440; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.4;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;align-items:center;gap:12px;padding-block:12px}
+.brand{font-family:var(--display);font-weight:800;font-size:1.35rem;letter-spacing:-.01em;flex:1;min-width:0}
+.brand small{display:block;font-family:var(--body);font-weight:500;font-size:.78rem;color:var(--muted);letter-spacing:0}
+.avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:.9rem;color:#fff;flex:none;border:0}
+main{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+main .wrap{display:flex;flex-direction:column;gap:16px;padding-block:16px}
+.banner{background:var(--accent-soft);border-radius:12px;padding:10px 14px;font-size:.9rem}
+.banner.warn{background:color-mix(in srgb,var(--warn) 16%,var(--surface));}
+/* summary */
+.summary{display:flex;gap:12px;align-items:stretch}
+.summary .box{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;min-width:0}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+.big{font-family:var(--display);font-weight:800;font-size:1.6rem;font-variant-numeric:tabular-nums;line-height:1.1;margin-top:2px}
+.hint{font-size:.8rem;color:var(--muted)}
+/* forms */
+form.add{display:grid;grid-template-columns:1fr 84px;gap:8px}
+form.add .row2{grid-column:1/-1;display:flex;gap:8px}
+input,select{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:11px 12px;width:100%;min-width:0}
+input::placeholder{color:var(--muted)}
+.btn{background:var(--accent);color:var(--bg);border:0;border-radius:10px;padding:11px 16px;font-weight:700;white-space:nowrap}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
+.btn.danger{background:transparent;color:var(--danger);border:1px solid var(--line)}
+.btn:disabled{opacity:.5}
+/* chips */
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:.85rem;white-space:nowrap;font-weight:500}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+/* list */
+.group h3{font-family:var(--display);font-weight:600;font-size:1rem;margin:0 0 6px;display:flex;align-items:center;gap:8px}
+.dot{width:9px;height:9px;border-radius:50%;flex:none}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.item{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.check{width:26px;height:26px;border-radius:50%;border:2px solid var(--muted);background:transparent;flex:none;display:grid;place-items:center;margin-top:1px;padding:0}
+.check svg{width:14px;height:14px;opacity:0}
+.item.done .check{background:var(--accent);border-color:var(--accent)}
+.item.done .check svg{opacity:1}
+.item .body{flex:1;min-width:0}
+.item .name{font-weight:600;overflow-wrap:anywhere}
+.item.done .name{text-decoration:line-through;color:var(--muted)}
+.item .meta{font-size:.8rem;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
+.item .more{background:none;border:0;color:var(--muted);padding:4px;font-size:1.2rem;line-height:1;flex:none}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.actions .btn{padding:8px 12px;font-size:.88rem}
+/* price tag */
+.tag{display:inline-flex;align-items:center;gap:6px;background:var(--tag);color:var(--tag-ink);font-weight:700;font-size:.82rem;padding:3px 10px 3px 14px;margin-top:6px;
+  clip-path:polygon(8px 0,100% 0,100% 100%,8px 100%,0 50%);border-radius:0 6px 6px 0;font-variant-numeric:tabular-nums}
+.tag::before{content:"";width:4px;height:4px;border-radius:50%;background:var(--surface)}
+.tag.old{background:color-mix(in srgb,var(--tag) 45%,var(--surface))}
+.stale{color:var(--warn);font-weight:600}
+.empty{text-align:center;padding:28px 18px;color:var(--muted)}
+.empty b{display:block;color:var(--ink);font-family:var(--display);font-size:1.15rem;margin-bottom:4px}
+details.donebox summary{cursor:pointer;color:var(--muted);font-weight:600;padding:4px 0;list-style:none}
+details.donebox summary::-webkit-details-marker{display:none}
+/* prices */
+.prod{padding:12px 14px;border-top:1px solid var(--line)}
+.prod:first-child{border-top:0}
+.prod .pname{font-weight:700;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.storeRow{display:flex;justify-content:space-between;gap:10px;font-size:.9rem;padding:5px 0;align-items:center}
+.storeRow .s{min-width:0;overflow-wrap:anywhere}
+.storeRow .p{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.storeRow.best .p{color:var(--accent)}
+.best-label{font-size:.7rem;font-weight:700;background:var(--accent-soft);color:var(--accent);border-radius:6px;padding:1px 6px;margin-left:6px}
+.x{background:none;border:0;color:var(--muted);padding:2px 6px;font-size:1rem}
+/* family */
+.member{display:flex;gap:12px;align-items:center;padding:12px 14px;border-top:1px solid var(--line)}
+.member:first-child{border-top:0}
+.member .avatar{width:40px;height:40px}
+.member .info{flex:1;min-width:0}
+.member .role{font-size:.82rem;color:var(--muted)}
+.howto{font-size:.9rem;line-height:1.5}
+.howto li b{display:inline;font-family:inherit;font-size:inherit;margin:0}
+.howto ol{margin:6px 0 0;padding-left:20px}
+/* nav */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav.tabs .wrap{display:flex}
+nav.tabs button{flex:1;background:none;border:0;padding:10px 4px 12px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.76rem;font-weight:600;color:var(--muted)}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button[aria-selected="true"]{color:var(--accent)}
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgb(0 0 0 / .45);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:20px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:12px;max-height:90%;overflow:auto}
+.sheet h2{font-family:var(--display);font-weight:800;margin:0;font-size:1.3rem;text-wrap:balance}
+.sheet .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sheet .btns{display:flex;gap:8px;justify-content:flex-end}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:.9rem;z-index:30;max-width:calc(100% - 32px);text-align:center}
+.scan{display:flex;align-items:center;gap:14px;width:100%;background:var(--accent);color:var(--bg);border:0;border-radius:16px;padding:16px 18px;text-align:left}
+.scan svg{width:34px;height:34px;flex:none}
+.scan b{display:block;font-family:var(--display);font-size:1.15rem}
+.scan span{font-size:.85rem;opacity:.85}
+.purchase{display:flex;gap:12px;align-items:center;padding:12px 14px;border:0;border-top:1px solid var(--line);width:100%;background:none;text-align:left}
+.card > .purchase:first-child{border-top:0}
+.purchase .info{flex:1;min-width:0}
+.purchase .amt{font-family:var(--display);font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.line{display:grid;gap:6px;padding:10px 0;border-top:1px solid var(--line)}
+.line:first-child{border-top:0}
+.line .d{display:flex;gap:6px}
+.line .n{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.line input{padding:8px 10px;font-size:.92rem}
+.line .n label{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:flex;flex-direction:column;gap:2px;min-width:0}
+.rline{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:.92rem}
+.rline:first-child{border-top:0}
+.rline .p{font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.receipt-img{width:100%;border-radius:10px;border:1px solid var(--line)}
+.spinner{width:42px;height:42px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--accent);margin:8px auto;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.totrow{display:flex;justify-content:space-between;font-weight:700;font-size:1.05rem;padding-top:8px;border-top:2px solid var(--ink);font-variant-numeric:tabular-nums}
+.sug{width:100%;border-collapse:collapse;font-size:.86rem;min-width:440px}
+.sug th{text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:6px 6px;border-bottom:2px solid var(--ink)}
+.sug td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+.sug .r{text-align:right;font-variant-numeric:tabular-nums}
+.sheet.wide{max-width:720px}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(24px);opacity:.6}}}
+</style>
+
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="brand">Canasta Familiar<small id="sub">Comprar bien y al mejor precio</small></div>
+  <button class="avatar" id="meAvatar" style="background:#7a8a7e" aria-label="Mi perfil">?</button>
+</div></header>
+
+<main><div class="wrap" id="view"></div></main>
+
+<nav class="tabs" role="tablist"><div class="wrap">
+  <button role="tab" data-tab="compras" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 2.5h12v19l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5-2 1.5z"/><path d="M9 8h6M9 12h6M9 16h3" stroke-linecap="round"/></svg>Compras</button>
+  <button role="tab" data-tab="lista" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>Lista</button>
+  <button role="tab" data-tab="precios" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/></svg>Precios</button>
+  <button role="tab" data-tab="familia" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><circle cx="17.5" cy="9" r="2.5"/><path d="M16.5 14.6c2.6.2 4.4 2 5 5"/></svg>Familia</button>
+</div></nav>
+
+<div id="sheetRoot"></div>
+<input type="file" id="camInput" accept="image/*" capture="environment" hidden>
+<input type="file" id="galInput" accept="image/*" hidden>
+<input type="file" id="listInput" accept="image/*" hidden>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+window.startApp = () => {
+const CATS = [
+  ["Lácteos","#4C86C6"],["Cárnicos","#C0443A"],["Verduras","#3E9A4F"],["Frutas","#D9822B"],["Panadería","#B5893F"],
+  ["Almacén","#8C6A3F"],["Bebidas","#7B5CC4"],["Limpieza","#2A9BA0"],["Salud","#D04B6B"],["Perfumería","#C45C9A"],["Otros","#7D8A80"]];
+const SEC_NAMES = CATS.map(c=>c[0]);
+const CAT_COLOR = Object.fromEntries(CATS);
+const ROLES = ["Papá","Mamá","Hijo/a","Empleada","Otro"];
+const STORES = ["Coto","Carrefour","Día","Jumbo","ChangoMás","Vea","Disco","Mayorista","Verdulería del barrio","Carnicería del barrio","Chino del barrio"];
+const UNITS = ["unidad","kg","litro","paquete","docena"];
+const STALE_DAYS = 30;
+
+const money = new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:2});
+const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const key = s => String(s||"").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\s+/g," ");
+const ago = t => { const d = Math.floor((Date.now()-t)/864e5); return d<=0?"hoy":d===1?"ayer":`hace ${d} días`; };
+const qtyNum = q => { const n = parseFloat(String(q||"").replace(",",".")); return isFinite(n)&&n>0?n:1; };
+const store = (k,v) => { try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v);}catch{ return null; } };
+
+let sample=null, assets=null, purchases=[], scanCtl=null;
+let db=null, user=null, myId=null, ready=false, connected=false, canWrite=true;
+let items=[], prices=[], members={}, profileNames={}, myProfileName="";
+let tab = store("cf-tab") || "compras", filterCat = "Todas", openItem = null, priceSearch = "", confirmClear=false;
+let loaded = {items:false,prices:false,members:false,purchases:false};
+
+const view = document.getElementById("view");
+const sheetRoot = document.getElementById("sheetRoot");
+
+function toast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3200); }
+function writeErr(e){ console.warn(e); toast(e&&e.code==="invalid_argument" ? "No se pudo guardar: tu cuenta no tiene permiso de edición. Pedile a quien administra la app que revise tu acceso." : "No se pudo guardar. Revisá la conexión y probá de nuevo."); }
+
+function nameOf(id){ return (members[id]&&members[id].name) || profileNames[id] || "Alguien"; }
+function colorOf(id){ return (members[id]&&members[id].color) || "#7a8a7e"; }
+const PALETTE=["#1E6A44","#B5562E","#3B6FB0","#8A4FB0","#A0632A","#2A8C8F","#B0456F"];
+
+// ---------- price logic ----------
+function priceIndex(){
+  // latest price per (product, store)
+  const byProd = {};
+  const fromTickets = purchases.flatMap(pu=>(pu.lines||[]).filter(l=>l.unit>0).map(l=>({product:l.name||l.desc,store:pu.store+(pu.branch?" "+pu.branch:""),price:l.unit,unit:"unidad",by:pu.by,at:pu.ts||pu.at,ticket:true,id:null})));
+  for(const p of [...prices,...fromTickets]){
+    const k=key(p.product); if(!k) continue;
+    const prod = byProd[k] ||= {name:p.product, stores:{}};
+    const sk = key(p.store);
+    const cur = prod.stores[sk];
+    if(!cur || p.at>cur.at) prod.stores[sk]=p;
+  }
+  for(const k in byProd){
+    const list = Object.values(byProd[k].stores).sort((a,b)=>a.price-b.price);
+    byProd[k].list=list; byProd[k].best=list[0];
+  }
+  return byProd;
+}
+function bestFor(idx,name){
+  const ik=key(name); if(idx[ik]) return idx[ik].best;
+  let best=null; for(const [k,v] of Object.entries(idx)) if(k.includes(ik)&&v.best&&(!best||v.best.price<best.price)) best=v.best;
+  return best;
+}
+
+// ---------- render ----------
+function render(){
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===tab));
+  const me = myId && members[myId];
+  const av = document.getElementById("meAvatar");
+  av.textContent = me ? me.name.trim().charAt(0).toUpperCase() : "?";
+  av.style.background = me ? colorOf(myId) : "#7a8a7e";
+  let banner = "";
+  if(!db && ready) banner = `<div class="banner warn">No se pudo conectar con la base de datos. Revisá la conexión a internet.</div>`;
+  else if(db && !connected && ready && !Object.values(loaded).every(Boolean)) banner = `<div class="banner">Conectando con la lista de la familia…</div>`;
+  else if(db && ready && connected===null) banner = `<div class="banner warn">No pudimos conectar todavía. Lo que ves puede no estar actualizado.</div>`;
+  if(!canWrite) banner += `<div class="banner warn">Podés ver la lista, pero tu cuenta no tiene permiso para modificarla. Pedile a quien administra la app que revise tu acceso.</div>`;
+  view.innerHTML = banner + (tab==="compras"?renderCompras():tab==="lista"?renderLista():tab==="precios"?renderPrecios():renderFamilia());
+  bindView();
+}
+
+function renderLista(){
+  const idx = priceIndex();
+  const pending = items.filter(i=>!i.done), done = items.filter(i=>i.done);
+  let total=0, priced=0;
+  for(const i of pending){ const b = bestFor(idx,i.name); if(b){ total += b.price*qtyNum(i.qty); priced++; } }
+  const cats = ["Todas", ...CATS.map(c=>c[0]).filter(c=>pending.some(i=>i.cat===c))];
+  if(!cats.includes(filterCat)) filterCat="Todas";
+  const shown = pending.filter(i=>filterCat==="Todas"||i.cat===filterCat);
+  const groups = CATS.map(([c,col])=>({c,col,list:shown.filter(i=>(i.cat||"Otros")===c).sort((a,b)=>a.at-b.at)})).filter(g=>g.list.length);
+  const names = [...new Set([...items.map(i=>i.name), ...prices.map(p=>p.product)])];
+  return `
+  <div class="summary">
+    <div class="box"><div class="label">Para comprar</div><div class="big">${pending.length}</div><div class="hint">${pending.length===1?"producto":"productos"}</div></div>
+    <div class="box"><div class="label">Total estimado</div><div class="big">${priced?money.format(total):"—"}</div><div class="hint">${pending.length?`con precio: ${priced} de ${pending.length}`:"con los mejores precios"}</div></div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn" id="planBtn" style="flex:1 1 200px">¿Dónde conviene comprar hoy?</button>
+    <button class="btn ghost" id="listPhotoBtn" style="flex:1 1 160px">Foto de una lista</button>
+  </div>
+  <form class="add" id="addForm" autocomplete="off">
+    <input id="addName" placeholder="¿Qué falta? Ej: leche, yerba…" list="dlNames" required maxlength="80" aria-label="Producto">
+    <input id="addQty" placeholder="Cant." maxlength="20" aria-label="Cantidad">
+    <div class="row2">
+      <select id="addCat" aria-label="Categoría">${CATS.map(([c])=>`<option>${c}</option>`).join("")}</select>
+      <button class="btn" type="submit">Agregar</button>
+    </div>
+    <datalist id="dlNames">${names.map(n=>`<option value="${esc(n)}">`).join("")}</datalist>
+  </form>
+  ${cats.length>2?`<div class="chips">${cats.map(c=>`<button class="chip" data-cat="${esc(c)}" aria-pressed="${c===filterCat}">${esc(c)}</button>`).join("")}</div>`:""}
+  ${groups.length? groups.map(g=>`<section class="group"><h3><span class="dot" style="background:${g.col}"></span>${g.c}</h3><div class="card">${g.list.map(i=>itemRow(i,idx)).join("")}</div></section>`).join("")
+    : `<div class="card"><div class="empty"><b>${items.length?"¡Lista al día!":"La lista está vacía"}</b>Escribí arriba lo que falta en casa. Todos en la familia lo ven al instante.</div></div>`}
+  ${done.length?`<details class="donebox"><summary>Ya comprado (${done.length}) ▾</summary>
+    <div class="card" style="margin-top:8px">${done.sort((a,b)=>(b.doneAt||0)-(a.doneAt||0)).map(i=>itemRow(i,idx)).join("")}</div>
+    <div class="actions"><button class="btn danger" id="clearDone">${confirmClear?"¿Seguro? Tocá de nuevo para borrar":"Borrar los comprados"}</button></div>
+  </details>`:""}`;
+}
+
+function itemRow(i,idx){
+  const b = bestFor(idx,i.name);
+  const old = b && (Date.now()-b.at)/864e5>STALE_DAYS;
+  const meta = i.done ? `Lo compró ${esc(nameOf(i.doneBy))} · ${ago(i.doneAt||i.at)}` : `${i.qty?esc(i.qty)+" · ":""}${i.note?esc(i.note)+" · ":""}lo pidió ${esc(nameOf(i.by))}`;
+  return `<div class="item ${i.done?"done":""}" data-id="${i.id}">
+    <button class="check" data-act="toggle" aria-label="${i.done?"Desmarcar":"Marcar como comprado"}"><svg viewBox="0 0 24 24" fill="none" stroke="var(--bg)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></button>
+    <div class="body">
+      <div class="name">${esc(i.name)}</div>
+      <div class="meta">${meta}</div>
+      ${b&&!i.done?`<span class="tag ${old?"old":""}">${money.format(b.price)} en ${esc(b.store)}${old?" · viejo":""}</span>`:""}
+      ${openItem===i.id?`<div class="actions">
+        <button class="btn ghost" data-act="price">Cargar precio</button>
+        <button class="btn ghost" data-act="edit">Editar</button>
+        <button class="btn danger" data-act="del">Eliminar</button></div>`:""}
+    </div>
+    <button class="more" data-act="more" aria-label="Opciones">⋯</button>
+  </div>`;
+}
+
+function renderPrecios(){
+  const idx = priceIndex();
+  const q = key(priceSearch);
+  const prods = Object.entries(idx).filter(([k])=>!q||k.includes(q)).sort((a,b)=>a[1].name.localeCompare(b[1].name,"es"));
+  return `${renderPromos()}
+  <div class="summary"><div class="box"><div class="label">Precios cargados</div><div class="big">${prices.length+purchases.reduce((a,p)=>a+(p.lines||[]).length,0)}</div><div class="hint">${Object.keys(idx).length} productos comparados. Con la inflación, un precio de más de ${STALE_DAYS} días se marca como viejo.</div></div></div>
+  <div style="display:flex;gap:8px">
+    <input id="priceSearch" placeholder="Buscar producto…" value="${esc(priceSearch)}" aria-label="Buscar producto">
+    <button class="btn" id="newPrice">+ Precio</button>
+  </div>
+  ${prods.length?`<div class="card">${prods.map(([k,p])=>`<div class="prod">
+      <div class="pname"><span>${esc(p.name)}</span><span class="hint">${p.list.length} ${p.list.length===1?"comercio":"comercios"}</span></div>
+      ${p.list.map((s,n)=>{const old=(Date.now()-s.at)/864e5>STALE_DAYS; return `<div class="storeRow ${n===0&&p.list.length>1?"best":""}">
+        <span class="s">${esc(s.store)}${n===0&&p.list.length>1?`<span class="best-label">Mejor precio</span>`:""}<br><span class="hint ${old?"stale":""}">${s.unit&&s.unit!=="unidad"?"por "+esc(s.unit)+" · ":""}${ago(s.at)} · ${esc(nameOf(s.by))}</span></span>
+        <span class="p">${money.format(s.price)}${s.ticket?`<span class="hint"> · ticket</span>`:`<button class="x" data-delprice="${s.id}" aria-label="Borrar precio">×</button>`}</span></div>`}).join("")}
+    </div>`).join("")}</div>`
+  : `<div class="card"><div class="empty"><b>${q?"No hay precios para esa búsqueda":"Todavía no hay precios"}</b>Cuando alguien vaya al súper, que cargue lo que pagó. Así comparamos comercios y sabemos dónde conviene.</div></div>`}`;
+}
+
+function renderFamilia(){
+  const list = Object.entries(members).sort((a,b)=>(a[1].at||0)-(b[1].at||0));
+  const added = id => items.filter(i=>i.by===id).length + prices.filter(p=>p.by===id).length + purchases.filter(p=>p.by===id).length;
+  return `
+  ${isAdmin()&&joinCode?`<div class="summary"><div class="box"><div class="label">Código familiar</div><div class="big" style="letter-spacing:.15em">${esc(joinCode)}</div><div class="hint">Pasáselo a quien quieras sumar. Lo escribe la primera vez que entra.</div></div></div>`:""}
+  <div class="card">${list.length? list.map(([id,m])=>`<div class="member">
+      <span class="avatar" style="background:${esc(m.color||"#7a8a7e")}">${esc(m.name.trim().charAt(0).toUpperCase())}</span>
+      <div class="info"><div style="font-weight:600">${esc(m.name)}${id===myId?" (vos)":""}</div><div class="role">${esc(m.role||"")}${admins.includes(id)?" · Administrador":""} · ${added(id)} aportes</div></div>
+      ${amOwner&&id!==myId?`<button class="btn ghost" data-admin="${id}" style="padding:6px 10px;font-size:.8rem">${admins.includes(id)?"Quitar admin":"Hacer admin"}</button>`:""}
+      ${id===myId?`<button class="btn ghost" id="editMe">Editar</button>`:""}
+    </div>`).join("") : `<div class="empty"><b>Nadie se presentó todavía</b>Cada persona elige su nombre la primera vez que abre la app.</div>`}</div>
+  <div class="card"><div class="empty howto" style="text-align:left">
+    <b>Cómo sumar a la familia</b>
+    <ol>
+      <li>Pasale a cada persona el link de la app y el <b>código familiar</b> de arriba.</li>
+      <li>Cada uno toca <b>Crear cuenta</b> con su email y una contraseña, y después escribe el código.</li>
+      <li>Para que tu esposa cargue promos, tocá <b>Hacer admin</b> al lado de su nombre.</li>
+      <li>En el celu, desde el menú del navegador, toquen <b>Agregar a pantalla de inicio</b> para tenerla como app.</li>
+    </ol>
+  </div></div>
+  <button class="btn ghost" id="logoutBtn">Cerrar sesión</button>`;
+}
+
+// ---------- compras (tickets) ----------
+const pad = n => String(n).padStart(2,"0");
+function todayISO(){ const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function nowHM(){ const d=new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+function tsOf(date,time){ const t = Date.parse(`${date||todayISO()}T${/^\d{1,2}:\d{2}$/.test(time||"")?time.padStart(5,"0"):"12:00"}:00`); return isFinite(t)?t:Date.now(); }
+function fmtDate(date){ const [y,m,d]=(date||"").split("-"); return d?`${d}/${m}/${y}`:"sin fecha"; }
+function parseAR(v){
+  if(typeof v==="number") return v;
+  let raw=String(v??"").trim().replace(/\$/g,"").replace(/\s/g,"");
+  if(!raw) return 0;
+  const norm = /,/.test(raw) ? raw.replace(/\./g,"").replace(",",".") : (/^\d{1,3}(\.\d{3})+$/.test(raw)? raw.replace(/\./g,"") : raw);
+  const n=parseFloat(norm); return isFinite(n)?n:0;
+}
+const num2 = n => (Math.round((+n||0)*100)/100).toLocaleString("es-AR",{minimumFractionDigits:0,maximumFractionDigits:3});
+
+function renderCompras(){
+  const now=new Date(), ym=`${now.getFullYear()}-${pad(now.getMonth()+1)}`;
+  const month = purchases.filter(p=>(p.date||"").startsWith(ym));
+  const spent = month.reduce((a,p)=>a+(+p.total||0),0);
+  const list = [...purchases].sort((a,b)=>(b.ts||b.at)-(a.ts||a.at));
+  const monthName = now.toLocaleDateString("es-AR",{month:"long"});
+  return `
+  <button class="scan" id="scanBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 8.5A2.5 2.5 0 015.5 6h2l1.5-2h6l1.5 2h2A2.5 2.5 0 0121 8.5v9a2.5 2.5 0 01-2.5 2.5h-13A2.5 2.5 0 013 17.5z"/><circle cx="12" cy="13" r="3.8"/></svg>
+    <div><b>Sacar foto del ticket</b><span>Se cargan solos los productos, cantidades y precios</span></div>
+  </button>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn ghost" id="galBtn" style="flex:1">Elegir foto de la galería</button>
+    <button class="btn ghost" id="manualBtn" style="flex:1">Cargar a mano</button>
+  </div>
+  ${dashboard()}
+  ${list.length?`<div class="card">${list.map(p=>`<button class="purchase" data-purchase="${p.id}">
+      <div class="info"><div style="font-weight:700;overflow-wrap:anywhere">${esc(p.store||"Comercio sin nombre")}${p.branch?` <span class="hint">· ${esc(p.branch)}</span>`:""}</div>
+      <div class="hint">${fmtDate(p.date)}${p.time?" · "+esc(p.time)+" h":""} · ${(p.lines||[]).length} productos · ${esc(nameOf(p.by))}</div></div>
+      <div class="amt">${money.format(+p.total||0)}</div></button>`).join("")}</div>`
+  : `<div class="card"><div class="empty"><b>Todavía no hay compras</b>Después de ir al súper, sacale una foto al ticket. La app anota cada producto con su cantidad y precio, y la fecha, hora y lugar de la compra.</div></div>`}`;
+}
+
+async function shrink(file){
+  const url = URL.createObjectURL(file);
+  try{
+    const img = await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=url; });
+    const max=2000, sc=Math.min(1, max/Math.max(img.naturalWidth,img.naturalHeight));
+    const c=document.createElement("canvas"); c.width=Math.round(img.naturalWidth*sc); c.height=Math.round(img.naturalHeight*sc);
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+    return await new Promise(r=>c.toBlob(r,"image/jpeg",0.85));
+  } finally { URL.revokeObjectURL(url); }
+}
+
+const EXTRACT_PROMPT = `Sos un lector de tickets y facturas de supermercados de Argentina. Leé la imagen adjunta y devolvé SOLO un objeto JSON, sin texto extra, con esta forma:
+{"store": "nombre del comercio o cadena (ej: Coto, Carrefour, Día)", "branch": "sucursal, número o dirección si aparece, si no \\"\\"", "date": "AAAA-MM-DD", "time": "HH:MM en 24 h", "total": número final pagado, "discount": número positivo con la suma de descuentos aplicados al total de la compra al final del ticket (o 0), "lines": [{"desc": "descripción del producto como figura", "name": "nombre genérico y claro para comparar entre comercios: producto, marca y tamaño (ej: Leche entera La Serenísima 1 L)", "sec": "una de: ${SEC_NAMES.join(", ")}", "qty": número, "unit": número precio unitario, "total": número total de la línea}]}
+Reglas:
+- Los números van como número JSON con punto decimal (1.234,50 en el ticket es 1234.5).
+- Si el producto se vende por peso, qty son los kg (ej: 0.735) y unit el precio por kg.
+- Si falta el precio unitario, calculalo como total/qty. Si falta la cantidad, usá 1.
+- Los descuentos de un producto puntual (ej: 2x1, 2da unidad al 70%) van como líneas con total negativo y desc que empiece con "Descuento".
+- Los descuentos sobre el total de la compra que aparecen al final (ej: descuento banco, jubilados, tarjeta de la casa) NO van como línea: sumalos en "discount".
+- No incluyas subtotales, IVA, medios de pago, vuelto ni puntos.
+- Si un dato no se lee, usá "" o null. Si la imagen no es un ticket, devolvé {"error": "no es un ticket"}.`;
+
+async function onPhoto(file){
+  if(!file) return;
+  if(!sample){ toast("La lectura automática no está disponible. Podés cargarlo a mano."); return; }
+  let blob;
+  try{ blob = await shrink(file); }catch{ toast("No se pudo abrir esa foto. Probá con otra."); return; }
+  scanCtl = new AbortController();
+  const previewUrl = URL.createObjectURL(blob);
+  openSheet(`<h2>Leyendo el ticket…</h2>
+    <img class="receipt-img" src="${previewUrl}" alt="Foto del ticket" style="max-height:38vh;object-fit:contain">
+    <div class="spinner" aria-hidden="true"></div>
+    <div class="hint" style="text-align:center" id="scanMsg">Esto tarda entre 20 segundos y un minuto.</div>
+    <div class="btns"><button class="btn ghost" id="scanStop">Cancelar</button></div>`, scrim=>{
+      scrim.dataset.locked="1";
+      document.getElementById("scanStop").onclick=()=>{ scanCtl.abort(); closeSheet(); };
+    });
+  let data;
+  try{
+    data = await sample.json(EXTRACT_PROMPT,{images:[blob],signal:scanCtl.signal,modelTier:"default"});
+  }catch(e){
+    if(e && e.code==="cancelled") return;
+    closeSheet();
+    const msg = {not_granted:"Falta configurar la lectura automática de tickets. Podés cargarlo a mano.",rate_limited:"Muchos pedidos seguidos. Esperá un minuto y probá de nuevo.",images_unavailable:"Tu cuenta no puede enviar fotos a Claude desde acá. Cargalo a mano."}[e&&e.code] || "No se pudo leer el ticket. Probá con una foto más nítida, con buena luz y el ticket estirado.";
+    toast(msg); return;
+  }
+  if(!data || data.error || !Array.isArray(data.lines)){ closeSheet(); toast("Esa foto no parece un ticket. Probá de nuevo con el ticket completo."); return; }
+  const lines = data.lines.map(l=>{ const qty=parseAR(l.qty)||1; let total=parseAR(l.total); let unit=parseAR(l.unit); if(!unit&&total) unit=total/qty; if(!total&&unit) total=unit*qty; const sec = SEC_NAMES.includes(l.sec)?l.sec:"Otros"; return {desc:String(l.desc||"").trim(),name:String(l.name||"").trim(),sec,qty,unit:Math.round(unit*100)/100,total:Math.round(total*100)/100}; }).filter(l=>l.desc);
+  reviewSheet({store:String(data.store||"").trim(),branch:String(data.branch||"").trim(),date:/^\d{4}-\d{2}-\d{2}$/.test(data.date||"")?data.date:todayISO(),time:/^\d{1,2}:\d{2}/.test(data.time||"")?data.time.slice(0,5):"",total:parseAR(data.total)||null,discount:Math.abs(parseAR(data.discount))||0,lines}, blob);
+}
+document.getElementById("camInput").onchange=e=>{ const f=e.target.files[0]; e.target.value=""; onPhoto(f); };
+document.getElementById("galInput").onchange=e=>{ const f=e.target.files[0]; e.target.value=""; onPhoto(f); };
+
+function reviewSheet(t, blob){
+  const stores=[...new Set([...purchases.map(p=>p.store),...STORES])];
+  const lineHtml=(l,i)=>`<div class="line" data-i="${i}" data-name="${esc(l.name||"")}">
+      <div class="d"><input data-f="desc" value="${esc(l.desc)}" placeholder="Producto" aria-label="Producto"><select data-f="sec" aria-label="Sección" style="width:auto;flex:none;padding:8px 6px;font-size:.85rem">${SEC_NAMES.map(c=>`<option ${c===(l.sec||"Otros")?"selected":""}>${c}</option>`).join("")}</select><button type="button" class="x" data-rm="${i}" aria-label="Quitar línea">×</button></div>
+      <div class="n"><label>Cant.<input data-f="qty" inputmode="decimal" value="${esc(num2(l.qty))}"></label>
+      <label>P. unit.<input data-f="unit" inputmode="decimal" value="${esc(num2(l.unit))}"></label>
+      <label>Total<input data-f="total" inputmode="decimal" value="${esc(num2(l.total))}"></label></div></div>`;
+  openSheet(`<h2>Revisá la compra</h2>
+    <div class="hint">Corregí lo que haga falta antes de guardar.</div>
+    <form id="rf" autocomplete="off" style="display:flex;flex-direction:column;gap:10px">
+      <div class="grid2"><input id="rfStore" value="${esc(t.store)}" placeholder="Supermercado" list="dlRS" required maxlength="60" aria-label="Supermercado">
+      <input id="rfBranch" value="${esc(t.branch)}" placeholder="Sucursal / dirección" maxlength="80" aria-label="Sucursal"></div>
+      <datalist id="dlRS">${stores.map(s=>`<option value="${esc(s)}">`).join("")}</datalist>
+      <div class="grid2"><input id="rfDate" type="date" value="${esc(t.date)}" required aria-label="Fecha"><input id="rfTime" type="time" value="${esc(t.time)}" aria-label="Hora"></div>
+      <div class="label">Productos</div>
+      <div id="rfLines">${t.lines.map(lineHtml).join("")}</div>
+      <button type="button" class="btn ghost" id="rfAdd">+ Agregar línea</button>
+      <div class="grid2" style="align-items:center"><label class="hint" for="rfDisc">Descuento sobre el total ($)</label><input id="rfDisc" inputmode="decimal" value="${t.discount?esc(num2(t.discount)):""}" placeholder="0"></div>
+      <div class="hint" id="rfDiscInfo"></div>
+      <div class="totrow"><span>Total</span><span id="rfSum"></span></div>
+      <div class="hint" id="rfCheck"></div>
+      <div class="btns"><button type="button" class="btn ghost" data-close>Descartar</button><button class="btn" type="submit" id="rfSave">Guardar compra</button></div>
+    </form>`, scrim=>{
+      scrim.dataset.locked="1";
+      const box=document.getElementById("rfLines");
+      const read=()=>[...box.querySelectorAll(".line")].map(r=>({desc:r.querySelector('[data-f="desc"]').value.trim(),name:r.dataset.name||r.querySelector('[data-f="desc"]').value.trim(),sec:r.querySelector('[data-f="sec"]').value,qty:parseAR(r.querySelector('[data-f="qty"]').value)||1,unit:parseAR(r.querySelector('[data-f="unit"]').value),total:parseAR(r.querySelector('[data-f="total"]').value)})).filter(l=>l.desc);
+      const discOf=()=>Math.abs(parseAR(document.getElementById("rfDisc").value));
+      const sum=()=>{ const sub=read().reduce((a,l)=>a+l.total,0); const disc=discOf(); const s=sub-disc; document.getElementById("rfSum").textContent=money.format(s);
+        document.getElementById("rfDiscInfo").textContent = disc>0&&sub>0 ? `Subtotal ${money.format(sub)}. Se descuenta un ${(disc/sub*100).toLocaleString("es-AR",{maximumFractionDigits:2})}% del precio de cada producto.` : "";
+        const chk=document.getElementById("rfCheck");
+        chk.textContent = t.total ? (Math.abs(s-t.total)<1 ? `Coincide con el total del ticket (${money.format(t.total)}).` : `El ticket dice ${money.format(t.total)}. Revisá si falta o sobra alguna línea.`) : "";
+        chk.className = "hint" + (t.total && Math.abs(s-t.total)>=1 ? " stale" : ""); };
+      box.addEventListener("input",e=>{ const r=e.target.closest(".line"); const f=e.target.dataset.f; if(f==="desc") r.dataset.name="";
+        if(f==="qty"||f==="unit"){ const q=parseAR(r.querySelector('[data-f="qty"]').value)||1, u=parseAR(r.querySelector('[data-f="unit"]').value); r.querySelector('[data-f="total"]').value=num2(q*u); }
+        sum(); });
+      document.getElementById("rfDisc").addEventListener("input",sum);
+      box.addEventListener("click",e=>{ const b=e.target.closest("[data-rm]"); if(b){ b.closest(".line").remove(); sum(); } });
+      document.getElementById("rfAdd").onclick=()=>{ box.insertAdjacentHTML("beforeend",lineHtml({desc:"",qty:1,unit:0,total:0,sec:"Otros"},box.children.length)); box.lastElementChild.querySelector("input").focus(); };
+      sum();
+      document.getElementById("rf").onsubmit=async e=>{
+        e.preventDefault(); if(!needDb()) return;
+        let lines=read(); if(!lines.length){ toast("Agregá al menos un producto."); return; }
+        const sub=lines.reduce((a,l)=>a+l.total,0), disc=discOf();
+        const pct = disc>0&&sub>0 ? Math.min(disc/sub,1) : 0;
+        if(pct) lines=lines.map(l=>({...l,listUnit:l.unit,listTotal:l.total,unit:Math.round(l.unit*(1-pct)*100)/100,total:Math.round(l.total*(1-pct)*100)/100}));
+        const save=document.getElementById("rfSave"); save.disabled=true; save.textContent="Guardando…";
+        let photo=null;
+        if(blob && assets){ try{ photo=(await assets.upload(blob)).id; }catch(err){ console.warn(err); } }
+        const date=document.getElementById("rfDate").value, time=document.getElementById("rfTime").value;
+        const doc={store:document.getElementById("rfStore").value.trim(),branch:document.getElementById("rfBranch").value.trim(),date,time,ts:tsOf(date,time),
+          total:Math.round(lines.reduce((a,l)=>a+l.total,0)*100)/100,ticketTotal:t.total||null,discount:disc||0,discountPct:Math.round(pct*10000)/100,lines,photo,by:myId,at:Date.now()};
+        try{
+          await db.collection("purchases").add(doc);
+          // tilda en la lista lo que se compró
+          const bought=new Set(lines.map(l=>key(l.desc)));
+          const hits=items.filter(i=>!i.done && [...bought].some(b=>b.includes(key(i.name))));
+          for(const i of hits) await db.doc("items/"+i.id).update({done:true,doneBy:myId,doneAt:Date.now()});
+          closeSheet(); tab="compras"; render();
+          toast(`Compra guardada: ${lines.length} productos${hits.length?` · ${hits.length} tachados de la lista`:""}`);
+        }catch(err){ save.disabled=false; save.textContent="Guardar compra"; writeErr(err); }
+      };
+    });
+}
+
+function purchaseSheet(id){
+  const p=purchases.find(x=>x.id===id); if(!p) return;
+  let armed=false;
+  openSheet(`<h2>${esc(p.store||"Compra")}</h2>
+    <div class="hint">${p.branch?esc(p.branch)+" · ":""}${fmtDate(p.date)}${p.time?" · "+esc(p.time)+" h":""} · cargó ${esc(nameOf(p.by))}</div>
+    <div>${(p.lines||[]).map(l=>`<div class="rline"><span style="min-width:0;overflow-wrap:anywhere">${esc(l.desc)}<br><span class="hint">${num2(l.qty)} × ${money.format(l.unit||0)}${l.listUnit?` (lista ${money.format(l.listUnit)})`:""}</span></span><span class="p">${money.format(l.total||0)}</span></div>`).join("")}</div>
+    ${p.discount?`<div class="hint">Incluye descuento de ${money.format(p.discount)} (${String(p.discountPct).replace(".",",")}%) repartido en cada producto.</div>`:""}
+    <div class="totrow"><span>Total</span><span>${money.format(+p.total||0)}</span></div>
+    ${p.photo?`<details><summary class="hint" style="cursor:pointer">Ver foto del ticket</summary><img class="receipt-img" data-photo="${esc(p.photo)}" alt="Foto del ticket" style="margin-top:8px"></details>`:""}
+    <div class="btns"><button class="btn danger" id="pDel">Eliminar compra</button><button class="btn" data-close>Cerrar</button></div>`, ()=>{
+      const im=document.querySelector("[data-photo]"); if(im&&window.CANASTA_PHOTO_URL) window.CANASTA_PHOTO_URL(im.dataset.photo).then(u=>{ if(u) im.src=u; });
+      document.getElementById("pDel").onclick=async e=>{
+        if(!armed){ armed=true; e.target.textContent="¿Seguro? Tocá de nuevo"; return; }
+        if(!needDb()) return;
+        try{ await db.doc("purchases/"+id).delete(); closeSheet(); toast("Compra eliminada"); }catch(err){ writeErr(err); }
+      };
+    });
+}
+// ---------- dashboard y sugerencias ----------
+const MES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+const compact = n => n>=1e6 ? "$"+(n/1e6).toLocaleString("es-AR",{maximumFractionDigits:1})+" M" : n>=1e3 ? "$"+Math.round(n/1e3).toLocaleString("es-AR")+" mil" : "$"+Math.round(n);
+let sugSec = "Todas";
+function dashboard(){
+  const now=new Date(); const months=[];
+  for(let k=5;k>=0;k--){ const d=new Date(now.getFullYear(),now.getMonth()-k,1); months.push({ym:`${d.getFullYear()}-${pad(d.getMonth()+1)}`,label:MES[d.getMonth()],total:0,n:0}); }
+  const byYm=Object.fromEntries(months.map(m=>[m.ym,m]));
+  for(const p of purchases){ const m=byYm[(p.date||"").slice(0,7)]; if(m){ m.total+=(+p.total||0); m.n++; } }
+  const cur=months[5], prev=months[4];
+  const delta = prev.total>0 ? (cur.total-prev.total)/prev.total*100 : null;
+  const max=Math.max(1,...months.map(m=>m.total));
+  const W=340,H=150,top=22,bot=22,bw=34,gap=(W-bw*6)/6;
+  const bars=months.map((m,i)=>{ const h=Math.round((H-top-bot)*m.total/max); const x=Math.round(gap/2+i*(bw+gap)); const y=H-bot-h;
+    return `<rect x="${x}" y="${y}" width="${bw}" height="${Math.max(h,m.total?2:0)}" rx="4" fill="${i===5?"var(--accent)":"var(--line)"}"/>
+      ${m.total?`<text x="${x+bw/2}" y="${y-6}" text-anchor="middle" font-size="10" fill="var(--muted)">${compact(m.total)}</text>`:""}
+      <text x="${x+bw/2}" y="${H-6}" text-anchor="middle" font-size="11" font-weight="${i===5?700:500}" fill="${i===5?"var(--ink)":"var(--muted)"}">${m.label}</text>`; }).join("");
+  const secs={}; for(const p of purchases) if((p.date||"").startsWith(cur.ym)) for(const l of p.lines||[]) secs[l.sec||"Otros"]=(secs[l.sec||"Otros"]||0)+(+l.total||0);
+  const secList=Object.entries(secs).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]); const secMax=Math.max(1,...secList.map(s=>s[1]));
+  const monthName = now.toLocaleDateString("es-AR",{month:"long"});
+  return `<div class="card" style="padding:14px">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
+      <div><div class="label">Gastado en ${monthName}</div><div class="big">${money.format(cur.total)}</div>
+      <div class="hint">${cur.n} ${cur.n===1?"compra":"compras"}${delta===null?"":` · <span style="color:${delta>0?"var(--danger)":"var(--accent)"};font-weight:700">${delta>0?"▲":"▼"} ${Math.abs(delta).toFixed(0)}%</span> vs ${prev.label} (${money.format(prev.total)})`}</div></div>
+      <button class="btn" id="sugBtn">Sugerencias</button>
+    </div>
+    <div style="overflow-x:auto;margin-top:10px"><svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W*1.4}px;display:block" role="img" aria-label="Gasto de los últimos 6 meses">
+      <line x1="0" x2="${W}" y1="${H-bot}" y2="${H-bot}" stroke="var(--line)"/>${bars}</svg></div>
+    ${secList.length?`<div class="label" style="margin-top:12px;margin-bottom:6px">Por sección este mes</div>
+      ${secList.map(([s,v])=>`<div style="display:grid;grid-template-columns:88px 1fr auto;gap:8px;align-items:center;font-size:.85rem;padding:3px 0">
+        <span>${esc(s)}</span><span style="background:var(--bg);border-radius:4px;height:10px;overflow:hidden"><span style="display:block;height:100%;width:${(v/secMax*100).toFixed(1)}%;background:${CAT_COLOR[s]||"#7D8A80"}"></span></span>
+        <span style="font-variant-numeric:tabular-nums;font-weight:600">${money.format(v)}</span></div>`).join("")}`:""}
+  </div>`;
+}
+
+function suggestions(){
+  // último precio por (producto, comercio), a partir de los tickets y precios cargados a mano
+  const rows={};
+  const add=(name,sec,storeName,price,at)=>{ const k=key(name); if(!k||!(price>0)) return;
+    const r=rows[k] ||= {name,sec:sec||"Otros",stores:{}}; if(sec&&sec!=="Otros") r.sec=sec;
+    const sk=key(storeName); const c=r.stores[sk]; if(!c||at>c.at) r.stores[sk]={store:storeName,price,at}; };
+  for(const p of purchases) for(const l of p.lines||[]) if(l.unit>0) add(l.name||l.desc,l.sec,p.store+(p.branch?" "+p.branch:""),l.unit,p.ts||p.at);
+  for(const p of prices){ const it=items.find(i=>key(i.name)===key(p.product)); add(p.product,it&&it.cat,p.store,p.price,p.at); }
+  return Object.values(rows).map(r=>{ const l=Object.values(r.stores).sort((a,b)=>a.price-b.price); return {...r,best:l[0],worst:l[l.length-1],n:l.length}; });
+}
+function sugSheet(){
+  const all=suggestions();
+  const secs=["Todas",...SEC_NAMES.filter(s=>all.some(r=>r.sec===s))];
+  const draw=()=>{
+    const list=all.filter(r=>sugSec==="Todas"||r.sec===sugSec).sort((a,b)=>SEC_NAMES.indexOf(a.sec)-SEC_NAMES.indexOf(b.sec)||a.name.localeCompare(b.name,"es"));
+    document.getElementById("sugChips").innerHTML=secs.map(s=>`<button type="button" class="chip" data-sug="${esc(s)}" aria-pressed="${s===sugSec}">${esc(s)}</button>`).join("");
+    document.getElementById("sugBody").innerHTML = list.length ? `<div style="overflow-x:auto"><table class="sug"><thead><tr><th>Producto</th><th>Más barato en</th><th class="r">Precio</th><th class="r">Ahorro</th></tr></thead><tbody>
+      ${list.map(r=>{ const save=r.n>1&&r.worst.price>r.best.price?(1-r.best.price/r.worst.price)*100:0; const old=(Date.now()-r.best.at)/864e5>STALE_DAYS;
+        return `<tr><td><b>${esc(r.name)}</b><br><span class="hint"><span class="dot" style="display:inline-block;background:${CAT_COLOR[r.sec]||"#7D8A80"}"></span> ${esc(r.sec)}</span></td>
+        <td>${esc(r.best.store)}<br><span class="hint ${old?"stale":""}">${new Date(r.best.at).toLocaleDateString("es-AR")}${old?" · viejo":""}</span></td>
+        <td class="r"><b>${money.format(r.best.price)}</b></td>
+        <td class="r">${r.n>1?`<span style="color:var(--accent);font-weight:700">${save.toFixed(0)}%</span><br><span class="hint">vs ${esc(r.worst.store)} ${money.format(r.worst.price)}</span>`:`<span class="hint">un solo comercio</span>`}</td></tr>`; }).join("")}
+      </tbody></table></div>`
+      : `<div class="empty"><b>Sin datos todavía</b>Cargá tickets de distintos comercios y acá vas a ver dónde conviene comprar cada producto.</div>`;
+    document.querySelectorAll("[data-sug]").forEach(b=>b.onclick=()=>{ sugSec=b.dataset.sug; draw(); });
+  };
+  openSheet(`<h2>Sugerencias</h2><div class="hint">Dónde se compró más barato cada producto, según los tickets y precios de la familia.</div>
+    <div class="chips" id="sugChips"></div><div id="sugBody"></div>
+    <div class="btns"><button class="btn" data-close>Cerrar</button></div>`, draw);
+}
+// ---------- promos y dónde conviene ----------
+const DIAS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+let promos=[], admins=[], amOwner=false, joinCode="";
+const isAdmin = () => amOwner || (myId && admins.includes(myId));
+function promoActive(p, d=new Date()){
+  const today = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  if(p.from && today < p.from) return false;
+  if(p.until && today > p.until) return false;
+  return !(p.days&&p.days.length) || p.days.includes(d.getDay());
+}
+function promoText(p){
+  const days = p.days&&p.days.length ? p.days.slice().sort().map(d=>DIAS[d]).join(", ") : "todos los días";
+  return `${p.pct}% con ${p.card} · ${days}${p.cap?` · tope ${money.format(p.cap)}`:""}${p.sec&&p.sec!=="Todas"?` · solo ${p.sec}`:""}${p.until?` · hasta ${fmtDate(p.until)}`:""}`;
+}
+function renderPromos(){
+  const list=[...promos].sort((a,b)=>(a.store||"").localeCompare(b.store||"","es"));
+  const now=new Date(); const monthName=now.toLocaleDateString("es-AR",{month:"long"});
+  return `<section class="group"><h3 style="justify-content:space-between"><span>Promos de ${monthName}</span>${isAdmin()?`<button class="btn ghost" id="newPromo" style="padding:6px 12px;font-size:.85rem">+ Promo</button>`:""}</h3>
+  <div class="card">${list.length?list.map(p=>{ const on=promoActive(p); return `<div class="prod" style="display:flex;gap:10px;align-items:flex-start">
+      <div style="flex:1;min-width:0"><div class="pname" style="display:block">${esc(p.store)} ${on?`<span class="best-label">Hoy</span>`:""}</div>
+      <div class="hint" style="overflow-wrap:anywhere">${esc(promoText(p))}${p.note?" · "+esc(p.note):""}</div></div>
+      ${isAdmin()?`<button class="x" data-editpromo="${p.id}" aria-label="Editar promo">✎</button>`:""}</div>`;}).join("")
+    : `<div class="empty"><b>Sin promos cargadas</b>${isAdmin()?"Cargá los descuentos de este mes por tarjeta y comercio.":"Los administradores cargan acá los descuentos del mes."}</div>`}</div></section>`;
+}
+function promoSheet(p){
+  p = p || {store:"",card:"",pct:"",cap:"",days:[],sec:"Todas",from:"",until:"",note:""};
+  let days=[...(p.days||[])]; let armed=false;
+  const stores=[...new Set([...purchases.map(x=>x.store),...promos.map(x=>x.store),...STORES])];
+  const cards=[...new Set([...promos.map(x=>x.card),"Banco Galicia","Santander","BBVA","Banco Macro","Banco Nación","Banco Provincia","Banco Ciudad","ICBC","Naranja X","Mercado Pago","Cuenta DNI","Modo"])];
+  openSheet(`<h2>${p.id?"Editar promo":"Nueva promo"}</h2>
+    <form id="prf" autocomplete="off" style="display:flex;flex-direction:column;gap:10px">
+      <input id="prStore" value="${esc(p.store)}" placeholder="Comercio (ej: Coto)" list="dlPS" required maxlength="60" aria-label="Comercio">
+      <datalist id="dlPS">${stores.map(s=>`<option value="${esc(s)}">`).join("")}</datalist>
+      <input id="prCard" value="${esc(p.card)}" placeholder="Banco o tarjeta (ej: Banco Galicia)" list="dlPC" required maxlength="60" aria-label="Tarjeta">
+      <datalist id="dlPC">${cards.map(s=>`<option value="${esc(s)}">`).join("")}</datalist>
+      <div class="grid2"><input id="prPct" value="${esc(p.pct)}" placeholder="Descuento %" inputmode="decimal" required aria-label="Porcentaje de descuento">
+        <input id="prCap" value="${esc(p.cap)}" placeholder="Tope $ (opcional)" inputmode="decimal" aria-label="Tope de reintegro"></div>
+      <div><div class="label" style="margin-bottom:6px">Días de descuento (ninguno = todos)</div><div class="chips" style="flex-wrap:wrap">${DIAS.map((d,i)=>`<button type="button" class="chip" data-day="${i}" aria-pressed="${days.includes(i)}">${d}</button>`).join("")}</div></div>
+      <select id="prSec" aria-label="Sección">${["Todas",...SEC_NAMES].map(s=>`<option ${s===(p.sec||"Todas")?"selected":""}>${s}</option>`).join("")}</select>
+      <div class="grid2"><label class="hint">Desde<input id="prFrom" type="date" value="${esc(p.from)}"></label><label class="hint">Hasta<input id="prUntil" type="date" value="${esc(p.until)}"></label></div>
+      <input id="prNote" value="${esc(p.note)}" placeholder="Nota (ej: compra mínima $30.000)" maxlength="120" aria-label="Nota">
+      <div class="btns">${p.id?`<button type="button" class="btn danger" id="prDel">Eliminar</button>`:""}<button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn" type="submit">Guardar</button></div>
+    </form>`, scrim=>{
+      scrim.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{ const d=+b.dataset.day; days=days.includes(d)?days.filter(x=>x!==d):[...days,d]; b.setAttribute("aria-pressed",days.includes(d)); });
+      const del=document.getElementById("prDel"); if(del) del.onclick=async()=>{ if(!armed){armed=true; del.textContent="¿Seguro?"; return;} try{ await db.doc("promos/"+p.id).delete(); closeSheet(); toast("Promo eliminada"); }catch(e){ writeErr(e); } };
+      document.getElementById("prf").onsubmit=async e=>{
+        e.preventDefault(); if(!needDb()) return;
+        const pct=parseAR(document.getElementById("prPct").value); if(!(pct>0&&pct<=100)){ toast("Poné un descuento entre 1 y 100 %"); return; }
+        const doc={store:document.getElementById("prStore").value.trim(),card:document.getElementById("prCard").value.trim(),pct,cap:parseAR(document.getElementById("prCap").value)||null,days,
+          sec:document.getElementById("prSec").value,from:document.getElementById("prFrom").value,until:document.getElementById("prUntil").value,note:document.getElementById("prNote").value.trim(),by:myId,at:p.at||Date.now()};
+        try{ if(p.id) await db.doc("promos/"+p.id).set(doc); else await db.collection("promos").add(doc); closeSheet(); toast("Promo guardada"); }catch(err){ writeErr(err); }
+      };
+    });
+}
+
+// Para cada comercio: costo estimado de la lista con los últimos precios de ese comercio, menos la mejor promo de hoy.
+function planStores(when=new Date()){
+  const pending=items.filter(i=>!i.done);
+  const byStore={};
+  const put=(storeName,prodName,sec,price,at)=>{ const sk=key(storeName); if(!sk||!(price>0)) return; const s=byStore[sk] ||= {store:storeName,prods:{}}; const pk=key(prodName); const c=s.prods[pk]; if(!c||at>c.at) s.prods[pk]={name:prodName,sec,price,at}; };
+  for(const pu of purchases) for(const l of pu.lines||[]) put(pu.store,l.name||l.desc,l.sec,l.unit,pu.ts||pu.at);
+  for(const p of prices) put(p.store,p.product,null,p.price,p.at);
+  for(const pr of promos) byStore[key(pr.store)] ||= {store:pr.store,prods:{}};
+  const out=Object.values(byStore).map(s=>{
+    let cost=0, found=0; const secCost={};
+    for(const it of pending){
+      const ik=key(it.name); let best=null;
+      for(const [pk,v] of Object.entries(s.prods)) if(pk.includes(ik)||ik.includes(pk)) if(!best||v.price<best.price) best=v;
+      if(best){ const c=best.price*qtyNum(it.qty); cost+=c; found++; const sec=best.sec||it.cat||"Otros"; secCost[sec]=(secCost[sec]||0)+c; }
+    }
+    let promo=null, saving=0;
+    for(const pr of promos.filter(pr=>key(pr.store)===key(s.store)&&promoActive(pr,when))){
+      const base = pr.sec&&pr.sec!=="Todas" ? (secCost[pr.sec]||0) : cost;
+      let sv = base*pr.pct/100; if(pr.cap) sv=Math.min(sv,pr.cap);
+      if(!promo || sv>saving || (sv===saving && pr.pct>promo.pct)){ promo=pr; saving=sv; }
+    }
+    return {store:s.store,cost,found,promo,saving,final:cost-saving};
+  });
+  return {pending:pending.length, stores:out.filter(s=>s.found||s.promo)};
+}
+function planSheet(){
+  let dayOffset=0;
+  const draw=()=>{
+    const when=new Date(); when.setDate(when.getDate()+dayOffset);
+    const {pending,stores}=planStores(when);
+    const ranked=stores.filter(s=>s.found).sort((a,b)=>b.found-a.found||a.final-b.final);
+    const maxFound=Math.max(0,...ranked.map(s=>s.found));
+    const full=ranked.filter(s=>s.found===maxFound).sort((a,b)=>a.final-b.final);
+    const best=full[0];
+    const promoOnly=stores.filter(s=>!s.found&&s.promo);
+    document.getElementById("planDays").innerHTML=[0,1,2,3,4,5,6].map(o=>{ const d=new Date(); d.setDate(d.getDate()+o); return `<button type="button" class="chip" data-off="${o}" aria-pressed="${o===dayOffset}">${o===0?"Hoy":o===1?"Mañana":DIAS[d.getDay()]+" "+d.getDate()}</button>`; }).join("");
+    document.getElementById("planBody").innerHTML = !pending ? `<div class="empty"><b>La lista está vacía</b>Agregá productos a la lista para que la app calcule dónde conviene ir.</div>`
+      : !ranked.length ? `<div class="empty"><b>Faltan precios</b>Todavía no hay precios de los productos de la lista. Cargá tickets o precios y volvé a probar.</div>${promoOnly.length?`<div class="hint" style="margin-top:6px">Promos vigentes ese día: ${promoOnly.map(s=>esc(s.store+" "+promoText(s.promo))).join(" · ")}</div>`:""}`
+      : `${best?`<div class="banner" style="font-size:1rem"><b>Conviene ir a ${esc(best.store)}</b>${best.promo?` y pagar con <b>${esc(best.promo.card)}</b>`:""}. Total estimado ${money.format(best.final)}${best.saving?`, ahorrás ${money.format(best.saving)} con la promo`:""}.</div>`:""}
+        <div style="overflow-x:auto"><table class="sug"><thead><tr><th>Comercio</th><th class="r">Productos con precio</th><th class="r">Estimado</th><th>Mejor promo</th><th class="r">Final</th></tr></thead><tbody>
+        ${ranked.map(s=>`<tr><td><b>${esc(s.store)}</b></td><td class="r">${s.found} de ${pending}</td><td class="r">${money.format(s.cost)}</td>
+          <td>${s.promo?`${esc(s.promo.pct+"% "+s.promo.card)}<br><span class="hint">−${money.format(s.saving)}${s.promo.cap&&s.saving>=s.promo.cap?" (tope)":""}</span>`:`<span class="hint">sin promo</span>`}</td>
+          <td class="r"><b>${money.format(s.final)}</b></td></tr>`).join("")}
+        </tbody></table></div>
+        <div class="hint">Se compara con el último precio pagado en cada comercio. Un comercio con menos productos con precio puede parecer más barato porque le faltan datos.</div>`;
+    document.querySelectorAll("[data-off]").forEach(b=>b.onclick=()=>{ dayOffset=+b.dataset.off; draw(); });
+  };
+  openSheet(`<h2>¿Dónde conviene comprar?</h2><div class="hint">Según la lista de compras, los precios de la familia y las promos del día.</div>
+    <div class="chips" id="planDays"></div><div id="planBody" style="display:flex;flex-direction:column;gap:10px"></div>
+    <div class="btns"><button class="btn" data-close>Cerrar</button></div>`, draw);
+}
+async function toggleAdmin(id){
+  if(!amOwner||!db) return;
+  const next = admins.includes(id) ? admins.filter(x=>x!==id) : [...admins,id];
+  try{ await db.doc("config/admins").set({ids:next}); }catch(e){ writeErr(e); }
+}
+// ---------- foto de una lista de compras ----------
+const LIST_PROMPT = () => `Leé la imagen adjunta: es una lista de compras (puede estar escrita a mano, en un papel, un pizarrón o una captura de WhatsApp). Devolvé SOLO un objeto JSON, sin texto extra:
+{"items":[{"name":"producto escrito claro, con la primera letra en mayúscula y sin abreviaturas (ej: Leche, Yerba, Papas)","qty":"cantidad tal como figura (ej: 2, 1 kg, 3 paquetes) o \\"\\"","sec":"una de: ${SEC_NAMES.join(", ")}"}]}
+Si no es una lista de compras, devolvé {"error":"no es una lista"}.`;
+async function onListPhoto(file){
+  if(!file) return;
+  if(!sample){ toast("La lectura automática no está disponible."); return; }
+  let blob; try{ blob=await shrink(file); }catch{ toast("No se pudo abrir esa foto. Probá con otra."); return; }
+  const ctl=new AbortController(); const url=URL.createObjectURL(blob);
+  openSheet(`<h2>Leyendo la lista…</h2><img class="receipt-img" src="${url}" alt="Foto de la lista" style="max-height:38vh;object-fit:contain">
+    <div class="spinner" aria-hidden="true"></div><div class="hint" style="text-align:center">Tarda unos segundos.</div>
+    <div class="btns"><button class="btn ghost" id="lsStop">Cancelar</button></div>`, scrim=>{ scrim.dataset.locked="1"; document.getElementById("lsStop").onclick=()=>{ctl.abort(); closeSheet();}; });
+  let data;
+  try{ data=await sample.json(LIST_PROMPT(),{images:[blob],signal:ctl.signal,modelTier:"default"}); }
+  catch(e){ if(e&&e.code==="cancelled") return; closeSheet(); toast({not_granted:"Falta configurar la lectura automática de fotos.",rate_limited:"Muchos pedidos seguidos. Esperá un minuto."}[e&&e.code]||"No se pudo leer la lista. Probá con una foto más nítida."); return; }
+  const got=(data&&Array.isArray(data.items)?data.items:[]).map(i=>({name:String(i.name||"").trim(),qty:String(i.qty||"").trim(),cat:SEC_NAMES.includes(i.sec)?i.sec:"Otros"})).filter(i=>i.name);
+  if(!got.length){ closeSheet(); toast("No encontré productos en esa foto."); return; }
+  openSheet(`<h2>Encontré ${got.length} productos</h2><div class="hint">Destildá lo que no quieras agregar.</div>
+    <div class="card">${got.map((g,n)=>{ const dup=items.some(i=>!i.done&&key(i.name)===key(g.name)); return `<label class="item" style="cursor:pointer"><input type="checkbox" data-g="${n}" ${dup?"":"checked"} style="width:22px;height:22px;flex:none;accent-color:var(--accent)">
+      <div class="body"><div class="name">${esc(g.name)}</div><div class="meta">${g.qty?esc(g.qty)+" · ":""}${esc(g.cat)}${dup?" · ya está en la lista":""}</div></div></label>`; }).join("")}</div>
+    <div class="btns"><button class="btn ghost" data-close>Cancelar</button><button class="btn" id="lsAdd">Agregar y ver dónde conviene</button></div>`, ()=>{
+      document.getElementById("lsAdd").onclick=async e=>{
+        if(!needDb()) return; e.target.disabled=true;
+        const pick=[...document.querySelectorAll("[data-g]")].filter(c=>c.checked).map(c=>got[+c.dataset.g]);
+        try{ for(const g of pick) await db.collection("items").add({name:g.name,qty:g.qty,cat:g.cat,note:"",done:false,by:myId,at:Date.now()}); }
+        catch(err){ e.target.disabled=false; writeErr(err); return; }
+        closeSheet(); tab="lista"; render(); toast(`Se agregaron ${pick.length} productos`);
+        setTimeout(planSheet, 600);
+      };
+    });
+}
+document.getElementById("listInput").onchange=e=>{ const f=e.target.files[0]; e.target.value=""; onListPhoto(f); };
+
+// ---------- events ----------
+function bindView(){
+  const f = document.getElementById("addForm");
+  if(f){
+    const n=document.getElementById("addName"), c=document.getElementById("addCat");
+    n.addEventListener("change",()=>{ const prev = items.find(i=>key(i.name)===key(n.value)); if(prev&&prev.cat) c.value=prev.cat; });
+    f.addEventListener("submit", async e=>{
+      e.preventDefault();
+      const name=n.value.trim(); if(!name) return;
+      const dup = items.find(i=>!i.done && key(i.name)===key(name));
+      if(dup){ toast(`"${dup.name}" ya está en la lista`); return; }
+      const qty=document.getElementById("addQty").value.trim();
+      await addItem({name,qty,cat:c.value});
+      render(); document.getElementById("addName")?.focus();
+    });
+  }
+  view.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{filterCat=b.dataset.cat; render();});
+  view.querySelectorAll(".item [data-act]").forEach(b=>b.onclick=()=>itemAction(b.closest(".item").dataset.id,b.dataset.act));
+  const cd=document.getElementById("clearDone"); if(cd) cd.onclick=clearDone;
+  const ps=document.getElementById("priceSearch"); if(ps){ ps.oninput=()=>{priceSearch=ps.value; const pos=ps.selectionStart; render(); const el=document.getElementById("priceSearch"); el.focus(); el.setSelectionRange(pos,pos);}; }
+  const pb=document.getElementById("planBtn"); if(pb) pb.onclick=planSheet;
+  const lp=document.getElementById("listPhotoBtn"); if(lp) lp.onclick=()=>{ if(!needDb()) return; document.getElementById("listInput").click(); };
+  const npr=document.getElementById("newPromo"); if(npr) npr.onclick=()=>promoSheet();
+  view.querySelectorAll("[data-editpromo]").forEach(b=>b.onclick=()=>promoSheet(promos.find(p=>p.id===b.dataset.editpromo)));
+  view.querySelectorAll("[data-admin]").forEach(b=>b.onclick=()=>toggleAdmin(b.dataset.admin));
+  const sg=document.getElementById("sugBtn"); if(sg) sg.onclick=sugSheet;
+  const sb=document.getElementById("scanBtn"); if(sb) sb.onclick=()=>{ if(!needDb()) return; document.getElementById("camInput").click(); };
+  const gb=document.getElementById("galBtn"); if(gb) gb.onclick=()=>{ if(!needDb()) return; document.getElementById("galInput").click(); };
+  const mb=document.getElementById("manualBtn"); if(mb) mb.onclick=()=>{ if(!needDb()) return; reviewSheet({store:"",branch:"",date:todayISO(),time:nowHM(),total:null,lines:[{desc:"",qty:1,unit:0,total:0}]},null); };
+  view.querySelectorAll("[data-purchase]").forEach(b=>b.onclick=()=>purchaseSheet(b.dataset.purchase));
+  const np=document.getElementById("newPrice"); if(np) np.onclick=()=>priceSheet(priceSearch);
+  view.querySelectorAll("[data-delprice]").forEach(b=>b.onclick=()=>delPrice(b.dataset.delprice));
+  const lo=document.getElementById("logoutBtn"); if(lo) lo.onclick=()=>window.CANASTA_LOGOUT&&window.CANASTA_LOGOUT();
+  const em=document.getElementById("editMe"); if(em) em.onclick=()=>profileSheet();
+}
+
+document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>{tab=b.dataset.tab; store("cf-tab",tab); openItem=null; confirmClear=false; render(); scrollTo(0,0);});
+document.getElementById("meAvatar").onclick=()=>{ if(myId) profileSheet(); else toast("Entrá con tu cuenta para tener perfil."); };
+
+function needDb(){ if(!db){ toast("No hay conexión con la base de datos."); return false;} if(!myId){ toast("Tenés que entrar con tu cuenta."); return false;} return true; }
+
+async function addItem({name,qty,cat}){
+  if(!needDb()) return;
+  try{ await db.collection("items").add({name,qty,cat,note:"",done:false,by:myId,at:Date.now()}); }catch(e){ writeErr(e); }
+}
+async function itemAction(id,act){
+  const it = items.find(i=>i.id===id); if(!it) return;
+  if(act==="more"){ openItem = openItem===id?null:id; render(); return; }
+  if(act==="price"){ priceSheet(it.name); return; }
+  if(act==="edit"){ itemSheet(it); return; }
+  if(!needDb()) return;
+  try{
+    if(act==="toggle") await db.doc("items/"+id).update(it.done?{done:false,doneBy:null,doneAt:null}:{done:true,doneBy:myId,doneAt:Date.now()});
+    if(act==="del"){ openItem=null; await db.doc("items/"+id).delete(); toast("Eliminado"); }
+  }catch(e){ writeErr(e); }
+}
+async function clearDone(){
+  if(!confirmClear){ confirmClear=true; render(); document.querySelector("details.donebox").open=true; return; }
+  confirmClear=false; if(!needDb()) return;
+  const done = items.filter(i=>i.done);
+  try{ for(const i of done) await db.doc("items/"+i.id).delete(); toast(`Se borraron ${done.length} productos comprados`);}catch(e){ writeErr(e); }
+}
+async function delPrice(id){
+  if(!needDb()) return;
+  try{ await db.doc("prices/"+id).delete(); toast("Precio borrado"); }catch(e){ writeErr(e); }
+}
+
+// ---------- sheets ----------
+function openSheet(html, onMount){
+  sheetRoot.innerHTML = `<div class="scrim"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;
+  const scrim = sheetRoot.firstElementChild;
+  scrim.addEventListener("click",e=>{ if(e.target===scrim && !scrim.dataset.locked) closeSheet(); });
+  sheetRoot.querySelectorAll("[data-close]").forEach(b=>b.onclick=closeSheet);
+  onMount && onMount(scrim);
+}
+function closeSheet(){ sheetRoot.innerHTML=""; }
+
+function priceSheet(product=""){
+  const stores = [...new Set([...prices.map(p=>p.store), ...STORES])];
+  const lastStore = store("cf-store") || "";
+  openSheet(`<h2>Cargar un precio</h2>
+    <form id="pf" autocomplete="off" style="display:flex;flex-direction:column;gap:10px">
+      <input id="pfProd" placeholder="Producto (ej: Yerba 1 kg)" value="${esc(product)}" required maxlength="80" list="dlP" aria-label="Producto">
+      <datalist id="dlP">${[...new Set([...items.map(i=>i.name),...prices.map(p=>p.product)])].map(n=>`<option value="${esc(n)}">`).join("")}</datalist>
+      <input id="pfStore" placeholder="Comercio" value="${esc(lastStore)}" required maxlength="60" list="dlS" aria-label="Comercio">
+      <datalist id="dlS">${stores.map(s=>`<option value="${esc(s)}">`).join("")}</datalist>
+      <div class="grid2">
+        <input id="pfPrice" placeholder="Precio $" inputmode="decimal" required aria-label="Precio en pesos">
+        <select id="pfUnit" aria-label="Unidad">${UNITS.map(u=>`<option value="${u}">por ${u}</option>`).join("")}</select>
+      </div>
+      <div class="btns"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn" type="submit">Guardar precio</button></div>
+    </form>`, ()=>{
+      const pf=document.getElementById("pf");
+      document.getElementById(product?"pfPrice":"pfProd").focus();
+      pf.onsubmit=async e=>{
+        e.preventDefault();
+        const raw=document.getElementById("pfPrice").value.trim().replace(/\$/g,"").replace(/\s/g,"");
+        // es-AR: "1.234,50" -> 1234.50 ; also accepts "1234.5"
+        const norm = /,/.test(raw) ? raw.replace(/\./g,"").replace(",",".") : (/^\d{1,3}(\.\d{3})+$/.test(raw)? raw.replace(/\./g,"") : raw);
+        const price=parseFloat(norm);
+        if(!isFinite(price)||price<=0){ toast("Escribí un precio válido, por ejemplo 1.250,50"); return; }
+        if(!needDb()) return;
+        const st=document.getElementById("pfStore").value.trim(); store("cf-store",st);
+        try{ await db.collection("prices").add({product:document.getElementById("pfProd").value.trim(),store:st,price,unit:document.getElementById("pfUnit").value,by:myId,at:Date.now()}); closeSheet(); toast("Precio guardado"); }catch(err){ writeErr(err); }
+      };
+    });
+}
+
+function itemSheet(it){
+  openSheet(`<h2>Editar producto</h2>
+    <form id="ef" autocomplete="off" style="display:flex;flex-direction:column;gap:10px">
+      <input id="efName" value="${esc(it.name)}" required maxlength="80" aria-label="Producto">
+      <div class="grid2"><input id="efQty" value="${esc(it.qty)}" placeholder="Cantidad" maxlength="20" aria-label="Cantidad">
+        <select id="efCat" aria-label="Categoría">${CATS.map(([c])=>`<option ${c===it.cat?"selected":""}>${c}</option>`).join("")}</select></div>
+      <input id="efNote" value="${esc(it.note)}" placeholder="Nota (marca, tamaño…)" maxlength="120" aria-label="Nota">
+      <div class="btns"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn" type="submit">Guardar</button></div>
+    </form>`, ()=>{
+      document.getElementById("ef").onsubmit=async e=>{
+        e.preventDefault(); if(!needDb()) return;
+        try{ await db.doc("items/"+it.id).update({name:document.getElementById("efName").value.trim(),qty:document.getElementById("efQty").value.trim(),cat:document.getElementById("efCat").value,note:document.getElementById("efNote").value.trim()}); openItem=null; closeSheet(); }catch(err){ writeErr(err); }
+      };
+    });
+}
+
+function profileSheet(first=false){
+  const m = members[myId] || {};
+  let role = m.role || "";
+  let color = m.color || PALETTE[Object.keys(members).length % PALETTE.length];
+  openSheet(`<h2>${first?"¡Hola! ¿Quién sos?":"Mi perfil"}</h2>
+    ${first?`<div class="hint">Así la familia sabe quién pidió o compró cada cosa.</div>`:""}
+    <form id="mf" autocomplete="off" style="display:flex;flex-direction:column;gap:12px">
+      <input id="mfName" value="${esc(m.name||myProfileName)}" placeholder="Tu nombre" required maxlength="30" aria-label="Tu nombre">
+      <div><div class="label" style="margin-bottom:6px">En casa soy</div><div class="chips" style="flex-wrap:wrap">${ROLES.map(r=>`<button type="button" class="chip" data-role="${r}" aria-pressed="${r===role}">${r}</button>`).join("")}</div></div>
+      <div><div class="label" style="margin-bottom:6px">Mi color</div><div class="chips">${PALETTE.map(c=>`<button type="button" class="avatar" data-color="${c}" style="background:${c};${c===color?"outline:3px solid var(--ink);outline-offset:2px":""}" aria-label="Color"></button>`).join("")}</div></div>
+      <div class="btns">${first?"":`<button type="button" class="btn ghost" data-close>Cancelar</button>`}<button class="btn" type="submit">${first?"Entrar":"Guardar"}</button></div>
+    </form>`, scrim=>{
+      if(first) scrim.dataset.locked="1";
+      scrim.querySelectorAll("[data-role]").forEach(b=>b.onclick=()=>{role=b.dataset.role; scrim.querySelectorAll("[data-role]").forEach(x=>x.setAttribute("aria-pressed",x===b));});
+      scrim.querySelectorAll("[data-color]").forEach(b=>b.onclick=()=>{color=b.dataset.color; scrim.querySelectorAll("[data-color]").forEach(x=>x.style.outline=x===b?"3px solid var(--ink)":"none"); b.style.outlineOffset="2px";});
+      document.getElementById("mf").onsubmit=async e=>{
+        e.preventDefault();
+        const name=document.getElementById("mfName").value.trim(); if(!name) return;
+        try{ await db.doc("members/"+myId).set({name,role,color,at:m.at||Date.now()}); closeSheet(); toast(first?`¡Bienvenido/a, ${name}!`:"Perfil guardado"); }
+        catch(err){ closeSheet(); writeErr(err); }
+      };
+    });
+}
+
+// ---------- boot ----------
+let profilePromptShown=false;
+function maybeOnboard(){
+  if(false){ profilePromptShown=true; profileSheet(true); }
+}
+async function refreshProfiles(){
+  if(!user) return;
+  const ids=[...new Set([...items.map(i=>i.by),...items.map(i=>i.doneBy),...prices.map(p=>p.by),...purchases.map(p=>p.by),...Object.keys(members)].filter(Boolean))];
+  if(!ids.length) return;
+  try{ const ps = await user.profiles(ids); let changed=false; for(const id of ids){ const n=ps[id]?.name||""; if(profileNames[id]!==n){profileNames[id]=n; changed=true;} } if(changed) render(); }catch{}
+}
+
+render();
+(async()=>{
+  try{
+    if(window.claude && typeof window.claude.use==="function"){
+      [db,user,sample,assets] = await Promise.all([window.claude.use("db"), window.claude.use("user"), window.claude.use("sample"), window.claude.use("assets")]);
+    }
+  }catch(e){ db=null; }
+  ready=true;
+  if(!db){ render(); return; }
+  if(user){
+    const me = await user.me(); myId = me.id; myProfileName = me.name || "";
+    const cw = await user.can("data.write"); if(cw===false) canWrite=false;
+    amOwner = await user.isOwner();
+  }
+  const timer = setTimeout(()=>{ if(!Object.values(loaded).every(Boolean)){ connected=null; render(); } },10000);
+  const done = which => snap => {
+    if(!snap.metadata.fromCache) loaded[which]=true;
+    if(Object.values(loaded).every(Boolean)){ connected=true; clearTimeout(timer); }
+  };
+  const fail = e => { console.warn(e); clearTimeout(timer); connected=null; render(); };
+  db.collection("items").onSnapshot(s=>{ items=s.docs.map(d=>({id:d.id,...d.data()})); done("items")(s); render(); refreshProfiles(); }, fail);
+  db.collection("prices").onSnapshot(s=>{ prices=s.docs.map(d=>({id:d.id,...d.data()})); done("prices")(s); render(); refreshProfiles(); }, fail);
+  db.collection("promos").onSnapshot(s=>{ promos=s.docs.map(d=>({id:d.id,...d.data()})); render(); }, e=>console.warn(e));
+  db.doc("config/join").onSnapshot(d=>{ joinCode=d.exists?(d.data().code||""):""; render(); }, e=>console.warn(e));
+  db.doc("config/admins").onSnapshot(d=>{ admins=(d.exists&&Array.isArray(d.data().ids))?d.data().ids:[]; render(); }, e=>console.warn(e));
+  db.collection("purchases").onSnapshot(s=>{ purchases=s.docs.map(d=>({id:d.id,...d.data()})); done("purchases")(s); render(); refreshProfiles(); }, fail);
+  db.collection("members").onSnapshot(s=>{ members=Object.fromEntries(s.docs.map(d=>[d.id,d.data()])); done("members")(s); render(); maybeOnboard(); refreshProfiles(); }, fail);
+  render();
+})();
+};
+</script>
+
+<script src="data.js"></script>
+<script>if("serviceWorker" in navigator) addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));</script>
+</body>
+</html>
