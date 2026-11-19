@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es-AR">
+<html lang="es-PY">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -181,11 +181,12 @@ const CATS = [
 const SEC_NAMES = CATS.map(c=>c[0]);
 const CAT_COLOR = Object.fromEntries(CATS);
 const ROLES = ["Papá","Mamá","Hijo/a","Empleada","Otro"];
-const STORES = ["Coto","Carrefour","Día","Jumbo","ChangoMás","Vea","Disco","Mayorista","Verdulería del barrio","Carnicería del barrio","Chino del barrio"];
+const STORES = ["Superseis","Stock","Areté","Casa Rica","Biggie","Salemma","Real","Los Jardines","El Pueblo","Gran Vía","Fortis","Pueblo","Verdulería del barrio","Carnicería del barrio","Despensa del barrio"];
+const CUR = {code:"PYG", sym:"Gs.", locale:"es-PY", dec:0};
 const UNITS = ["unidad","kg","litro","paquete","docena"];
 const STALE_DAYS = 30;
 
-const money = new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:2});
+const money = { format: n => CUR.sym+" "+(Math.round((+n||0)*10**CUR.dec)/10**CUR.dec).toLocaleString("es-AR",{minimumFractionDigits:0,maximumFractionDigits:CUR.dec}) };
 const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const key = s => String(s||"").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\s+/g," ");
 const ago = t => { const d = Math.floor((Date.now()-t)/864e5); return d<=0?"hoy":d===1?"ayer":`hace ${d} días`; };
@@ -388,22 +389,24 @@ async function shrink(file){
   const url = URL.createObjectURL(file);
   try{
     const img = await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=url; });
-    const max=2000, sc=Math.min(1, max/Math.max(img.naturalWidth,img.naturalHeight));
+    const sc=Math.min(1, 1600/img.naturalWidth, 4000/img.naturalHeight);
     const c=document.createElement("canvas"); c.width=Math.round(img.naturalWidth*sc); c.height=Math.round(img.naturalHeight*sc);
     c.getContext("2d").drawImage(img,0,0,c.width,c.height);
-    return await new Promise(r=>c.toBlob(r,"image/jpeg",0.85));
+    return await new Promise(r=>c.toBlob(r,"image/jpeg",0.9));
   } finally { URL.revokeObjectURL(url); }
 }
 
-const EXTRACT_PROMPT = `Sos un lector de tickets y facturas de supermercados de Argentina. Leé la imagen adjunta y devolvé SOLO un objeto JSON, sin texto extra, con esta forma:
+const EXTRACT_PROMPT = `Sos un lector de tickets y facturas de supermercados de Paraguay (en guaraníes, Gs.). Leé la imagen adjunta y devolvé SOLO un objeto JSON, sin texto extra, con esta forma:
 {"store": "nombre del comercio o cadena (ej: Coto, Carrefour, Día)", "branch": "sucursal, número o dirección si aparece, si no \\"\\"", "date": "AAAA-MM-DD", "time": "HH:MM en 24 h", "total": número final pagado, "discount": número positivo con la suma de descuentos aplicados al total de la compra al final del ticket (o 0), "lines": [{"desc": "descripción del producto como figura", "name": "nombre genérico y claro para comparar entre comercios: producto, marca y tamaño (ej: Leche entera La Serenísima 1 L)", "sec": "una de: ${SEC_NAMES.join(", ")}", "qty": número, "unit": número precio unitario, "total": número total de la línea}]}
 Reglas:
-- Los números van como número JSON con punto decimal (1.234,50 en el ticket es 1234.5).
+- En los tickets el punto separa miles y los guaraníes no tienen decimales: 16.050 es 16050 y 235.983 es 235983. Devolvé los números como número JSON sin separadores (16050). Las cantidades por peso usan coma o punto decimal y son chicas (0,245 kg es 0.245).
+- En facturas paraguayas cada producto ocupa dos renglones: primero código, descripción e IVA; abajo cantidad, precio bruto, precio neto y subtotal. Usá el precio neto como precio unitario y el subtotal como total.
+- La sucursal suele figurar como "SUC:" con su dirección, y la fecha como "Fecha y hora de emisión".
 - Si el producto se vende por peso, qty son los kg (ej: 0.735) y unit el precio por kg.
 - Si falta el precio unitario, calculalo como total/qty. Si falta la cantidad, usá 1.
 - Los descuentos de un producto puntual (ej: 2x1, 2da unidad al 70%) van como líneas con total negativo y desc que empiece con "Descuento".
 - Los descuentos sobre el total de la compra que aparecen al final (ej: descuento banco, jubilados, tarjeta de la casa) NO van como línea: sumalos en "discount".
-- No incluyas subtotales, IVA, medios de pago, vuelto ni puntos.
+- No incluyas subtotales, IVA, liquidación de IVA, timbrado, medios de pago, vuelto ni puntos.
 - Si un dato no se lee, usá "" o null. Si la imagen no es un ticket, devolvé {"error": "no es un ticket"}.`;
 
 async function onPhoto(file){
@@ -454,7 +457,7 @@ function reviewSheet(t, blob){
       <div class="label">Productos</div>
       <div id="rfLines">${t.lines.map(lineHtml).join("")}</div>
       <button type="button" class="btn ghost" id="rfAdd">+ Agregar línea</button>
-      <div class="grid2" style="align-items:center"><label class="hint" for="rfDisc">Descuento sobre el total ($)</label><input id="rfDisc" inputmode="decimal" value="${t.discount?esc(num2(t.discount)):""}" placeholder="0"></div>
+      <div class="grid2" style="align-items:center"><label class="hint" for="rfDisc">Descuento sobre el total (Gs.)</label><input id="rfDisc" inputmode="decimal" value="${t.discount?esc(num2(t.discount)):""}" placeholder="0"></div>
       <div class="hint" id="rfDiscInfo"></div>
       <div class="totrow"><span>Total</span><span id="rfSum"></span></div>
       <div class="hint" id="rfCheck"></div>
@@ -521,7 +524,7 @@ function purchaseSheet(id){
 }
 // ---------- dashboard y sugerencias ----------
 const MES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
-const compact = n => n>=1e6 ? "$"+(n/1e6).toLocaleString("es-AR",{maximumFractionDigits:1})+" M" : n>=1e3 ? "$"+Math.round(n/1e3).toLocaleString("es-AR")+" mil" : "$"+Math.round(n);
+const compact = n => n>=1e6 ? (n/1e6).toLocaleString("es-AR",{maximumFractionDigits:1})+" M" : n>=1e3 ? Math.round(n/1e3).toLocaleString("es-AR")+" mil" : ""+Math.round(n);
 let sugSec = "Todas";
 function dashboard(){
   const now=new Date(); const months=[];
@@ -612,19 +615,19 @@ function promoSheet(p){
   p = p || {store:"",card:"",pct:"",cap:"",days:[],sec:"Todas",from:"",until:"",note:""};
   let days=[...(p.days||[])]; let armed=false;
   const stores=[...new Set([...purchases.map(x=>x.store),...promos.map(x=>x.store),...STORES])];
-  const cards=[...new Set([...promos.map(x=>x.card),"Banco Galicia","Santander","BBVA","Banco Macro","Banco Nación","Banco Provincia","Banco Ciudad","ICBC","Naranja X","Mercado Pago","Cuenta DNI","Modo"])];
+  const cards=[...new Set([...promos.map(x=>x.card),"Itaú","Banco Continental","ueno bank","Sudameris","Banco GNB","Banco Basa","Visión Banco","Banco Familiar","Banco Atlas","BNF","Bancop","Interfisa","Zeta Banco","Tigo Money","Personal Pay"])];
   openSheet(`<h2>${p.id?"Editar promo":"Nueva promo"}</h2>
     <form id="prf" autocomplete="off" style="display:flex;flex-direction:column;gap:10px">
-      <input id="prStore" value="${esc(p.store)}" placeholder="Comercio (ej: Coto)" list="dlPS" required maxlength="60" aria-label="Comercio">
+      <input id="prStore" value="${esc(p.store)}" placeholder="Comercio (ej: Superseis)" list="dlPS" required maxlength="60" aria-label="Comercio">
       <datalist id="dlPS">${stores.map(s=>`<option value="${esc(s)}">`).join("")}</datalist>
-      <input id="prCard" value="${esc(p.card)}" placeholder="Banco o tarjeta (ej: Banco Galicia)" list="dlPC" required maxlength="60" aria-label="Tarjeta">
+      <input id="prCard" value="${esc(p.card)}" placeholder="Banco o tarjeta (ej: Itaú)" list="dlPC" required maxlength="60" aria-label="Tarjeta">
       <datalist id="dlPC">${cards.map(s=>`<option value="${esc(s)}">`).join("")}</datalist>
       <div class="grid2"><input id="prPct" value="${esc(p.pct)}" placeholder="Descuento %" inputmode="decimal" required aria-label="Porcentaje de descuento">
-        <input id="prCap" value="${esc(p.cap)}" placeholder="Tope $ (opcional)" inputmode="decimal" aria-label="Tope de reintegro"></div>
+        <input id="prCap" value="${esc(p.cap)}" placeholder="Tope Gs. (opcional)" inputmode="decimal" aria-label="Tope de reintegro"></div>
       <div><div class="label" style="margin-bottom:6px">Días de descuento (ninguno = todos)</div><div class="chips" style="flex-wrap:wrap">${DIAS.map((d,i)=>`<button type="button" class="chip" data-day="${i}" aria-pressed="${days.includes(i)}">${d}</button>`).join("")}</div></div>
       <select id="prSec" aria-label="Sección">${["Todas",...SEC_NAMES].map(s=>`<option ${s===(p.sec||"Todas")?"selected":""}>${s}</option>`).join("")}</select>
       <div class="grid2"><label class="hint">Desde<input id="prFrom" type="date" value="${esc(p.from)}"></label><label class="hint">Hasta<input id="prUntil" type="date" value="${esc(p.until)}"></label></div>
-      <input id="prNote" value="${esc(p.note)}" placeholder="Nota (ej: compra mínima $30.000)" maxlength="120" aria-label="Nota">
+      <input id="prNote" value="${esc(p.note)}" placeholder="Nota (ej: compra mínima Gs. 200.000)" maxlength="120" aria-label="Nota">
       <div class="btns">${p.id?`<button type="button" class="btn danger" id="prDel">Eliminar</button>`:""}<button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn" type="submit">Guardar</button></div>
     </form>`, scrim=>{
       scrim.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{ const d=+b.dataset.day; days=days.includes(d)?days.filter(x=>x!==d):[...days,d]; b.setAttribute("aria-pressed",days.includes(d)); });
@@ -815,7 +818,7 @@ function priceSheet(product=""){
       <input id="pfStore" placeholder="Comercio" value="${esc(lastStore)}" required maxlength="60" list="dlS" aria-label="Comercio">
       <datalist id="dlS">${stores.map(s=>`<option value="${esc(s)}">`).join("")}</datalist>
       <div class="grid2">
-        <input id="pfPrice" placeholder="Precio $" inputmode="decimal" required aria-label="Precio en pesos">
+        <input id="pfPrice" placeholder="Precio Gs." inputmode="decimal" required aria-label="Precio en guaraníes">
         <select id="pfUnit" aria-label="Unidad">${UNITS.map(u=>`<option value="${u}">por ${u}</option>`).join("")}</select>
       </div>
       <div class="btns"><button type="button" class="btn ghost" data-close>Cancelar</button><button class="btn" type="submit">Guardar precio</button></div>
