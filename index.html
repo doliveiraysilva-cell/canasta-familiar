@@ -201,7 +201,7 @@ let loaded = {items:false,prices:false,members:false,purchases:false};
 const view = document.getElementById("view");
 const sheetRoot = document.getElementById("sheetRoot");
 
-function toast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3200); }
+function toast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), msg.length>90?9000:3200); }
 function writeErr(e){ console.warn(e); toast(e&&e.code==="invalid_argument" ? "No se pudo guardar: tu cuenta no tiene permiso de edición. Pedile a quien administra la app que revise tu acceso." : "No se pudo guardar. Revisá la conexión y probá de nuevo."); }
 
 function nameOf(id){ return (members[id]&&members[id].name) || profileNames[id] || "Alguien"; }
@@ -427,7 +427,7 @@ async function onPhoto(file){
   }catch(e){
     if(e && e.code==="cancelled") return;
     closeSheet();
-    const msg = {not_granted:"Falta configurar la lectura automática de tickets. Podés cargarlo a mano.",rate_limited:"Muchos pedidos seguidos. Esperá un minuto y probá de nuevo.",images_unavailable:"Tu cuenta no puede enviar fotos a Claude desde acá. Cargalo a mano."}[e&&e.code] || "No se pudo leer el ticket. Probá con una foto más nítida, con buena luz y el ticket estirado.";
+    const msg = {not_granted:"Falta configurar la lectura automática de tickets. Podés cargarlo a mano.",rate_limited:"Muchos pedidos seguidos. Esperá un minuto y probá de nuevo.",images_unavailable:"Tu cuenta no puede enviar fotos a Claude desde acá. Cargalo a mano."}[e&&e.code] || (e&&e.message&&e.message!=="sin_json" ? "No se pudo leer el ticket. Detalle: "+e.message : "No se pudo leer el ticket. Probá con una foto más nítida, con buena luz y el ticket estirado.");
     toast(msg); return;
   }
   if(!data || data.error || !Array.isArray(data.lines)){ closeSheet(); toast("Esa foto no parece un ticket. Probá de nuevo con el ticket completo."); return; }
@@ -709,7 +709,7 @@ async function onListPhoto(file){
     <div class="btns"><button class="btn ghost" id="lsStop">Cancelar</button></div>`, scrim=>{ scrim.dataset.locked="1"; document.getElementById("lsStop").onclick=()=>{ctl.abort(); closeSheet();}; });
   let data;
   try{ data=await sample.json(LIST_PROMPT(),{images:[blob],signal:ctl.signal,modelTier:"default"}); }
-  catch(e){ if(e&&e.code==="cancelled") return; closeSheet(); toast({not_granted:"Falta configurar la lectura automática de fotos.",rate_limited:"Muchos pedidos seguidos. Esperá un minuto."}[e&&e.code]||"No se pudo leer la lista. Probá con una foto más nítida."); return; }
+  catch(e){ if(e&&e.code==="cancelled") return; closeSheet(); toast({not_granted:"Falta configurar la lectura automática de fotos.",rate_limited:"Muchos pedidos seguidos. Esperá un minuto."}[e&&e.code]||(e&&e.message&&e.message!=="sin_json"?"No se pudo leer la lista. Detalle: "+e.message:"No se pudo leer la lista. Probá con una foto más nítida.")); return; }
   const got=(data&&Array.isArray(data.items)?data.items:[]).map(i=>({name:String(i.name||"").trim(),qty:String(i.qty||"").trim(),cat:SEC_NAMES.includes(i.sec)?i.sec:"Otros"})).filter(i=>i.name);
   if(!got.length){ closeSheet(); toast("No encontré productos en esa foto."); return; }
   openSheet(`<h2>Encontré ${got.length} productos</h2><div class="hint">Destildá lo que no quieras agregar.</div>

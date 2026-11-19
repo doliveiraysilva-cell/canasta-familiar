@@ -55,8 +55,10 @@ sample.json = async (prompt, opts = {}) => {
   const { data, error } = await sb.functions.invoke("leer", { body: { prompt, image } });
   if(opts.signal && opts.signal.aborted) throw { code: "cancelled" };
   if(error){
-    let detail = ""; try{ detail = (await error.context.json()).error; }catch{}
-    throw { code: detail === "sin_clave" ? "not_granted" : "unavailable", message: detail || error.message };
+    let detail = "";
+    try{ const j = await error.context.json(); detail = [j.error, j.detail, j.msg, j.message].filter(Boolean).join(": "); }
+    catch{ try{ detail = "HTTP " + error.context.status; }catch{} }
+    throw { code: /^sin_clave/.test(detail) ? "not_granted" : "unavailable", message: detail || error.message || "sin respuesta del servidor" };
   }
   return data;
 };
