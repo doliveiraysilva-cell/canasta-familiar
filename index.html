@@ -568,8 +568,12 @@ function purchaseSheet(id){
     ${p.discount?`<div class="hint">Incluye descuento de ${money.format(p.discount)} (${String(p.discountPct).replace(".",",")}%) repartido en cada producto.</div>`:""}
     <div class="totrow"><span>Total</span><span>${money.format(+p.total||0)}</span></div>
     ${p.photo?`<details><summary class="hint" style="cursor:pointer">Ver foto del ticket</summary><img class="receipt-img" data-photo="${esc(p.photo)}" alt="Foto del ticket" style="margin-top:8px"></details>`:""}
+    <div><div class="label" style="margin-bottom:6px">¿Quién pagó?</div><div class="chips" style="flex-wrap:wrap">${PAYERS.map(n=>`<button type="button" class="chip" data-pdpayer="${esc(n)}" aria-pressed="${n===p.payer}">${esc(n)}</button>`).join("")}</div></div>
     <form id="pdForm" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap" autocomplete="off"><label class="hint" for="pdDate" style="flex:1 1 140px">Fecha de la compra</label><input id="pdDate" type="date" value="${esc(p.date||"")}" style="flex:1 1 110px"><label class="hint" for="pdDisc" style="flex:1 1 140px">Descuento total del ticket (Gs.)</label><input id="pdDisc" inputmode="decimal" value="${p.discount?esc(num2(p.discount)):""}" placeholder="0" style="flex:1 1 110px"><button class="btn ghost" type="submit">Guardar cambios</button></form>
     <div class="btns"><button class="btn danger" id="pDel">Eliminar compra</button><button class="btn" data-close>Cerrar</button></div>`, ()=>{
+      document.querySelectorAll("[data-pdpayer]").forEach(b=>b.onclick=async()=>{ if(!needDb()) return; const n=b.dataset.pdpayer;
+        document.querySelectorAll("[data-pdpayer]").forEach(x=>x.setAttribute("aria-pressed", x===b));
+        try{ await db.doc("purchases/"+id).update({payer:n}); toast(`Pagó ${n}`); }catch(err){ writeErr(err); } });
       document.getElementById("pdForm").onsubmit=async e=>{ e.preventDefault(); if(!needDb()) return;
         const disc=Math.abs(parseAR(document.getElementById("pdDisc").value));
         const r=prorate(p.lines||[], disc);
