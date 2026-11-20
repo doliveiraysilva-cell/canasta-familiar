@@ -147,13 +147,30 @@ nav.tabs button[aria-selected="true"]{color:var(--accent)}
 .sug td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
 .sug .r{text-align:right;font-variant-numeric:tabular-nums}
 .sheet.wide{max-width:720px}
+.hbtn{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:.85rem;font-weight:600;flex:none}
+.hbtn svg{width:18px;height:18px}
+.brand{cursor:pointer}
+.cols{display:flex;flex-direction:column;gap:16px;min-width:0}
+.cols>*{min-width:0}
+@media (max-width:380px){.hbtn span{display:none}.hbtn{padding:7px}}
+@media (min-width:900px){
+  .wrap{max-width:1080px}
+  .cols{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:start}
+  .card.prods{column-count:2;column-gap:24px}
+  .card.prods .prod{break-inside:avoid}
+  .scrim{align-items:center!important}
+  .sheet{border-radius:18px;max-width:640px;max-height:86vh}
+  nav.tabs .wrap{max-width:640px}
+}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(24px);opacity:.6}}}
 </style>
 
 </head>
 <body>
 <header class="top"><div class="wrap">
-  <div class="brand">Canasta Familiar<small id="sub">Comprar bien y al mejor precio</small></div>
+  <div class="brand" id="brandHome" role="link" tabindex="0" title="Ir al inicio">Canasta Familiar<small id="sub">Comprar bien y al mejor precio</small></div>
+  <button class="hbtn" id="homeBtn" hidden aria-label="Inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg><span>Inicio</span></button>
+  <button class="hbtn" id="exitBtn" hidden aria-label="Salir de la app"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h4v16h-4"/><path d="M10 8l-4 4 4 4M6 12h11"/></svg><span>Salir</span></button>
   <button class="avatar" id="meAvatar" style="background:#7a8a7e" aria-label="Mi perfil">?</button>
 </div></header>
 
@@ -252,6 +269,7 @@ function render(){
   if(tab==="precios" && !can("precios")) tab="compras";
   document.querySelectorAll("nav.tabs button").forEach(b=>{ b.setAttribute("aria-selected", b.dataset.tab===tab); if(b.dataset.tab==="precios") b.hidden=!can("precios"); });
   const me = myId && members[myId];
+  document.getElementById("homeBtn").hidden = document.getElementById("exitBtn").hidden = !myId;
   const av = document.getElementById("meAvatar");
   av.textContent = me ? me.name.trim().charAt(0).toUpperCase() : "?";
   av.style.background = me ? colorOf(myId) : "#7a8a7e";
@@ -330,7 +348,7 @@ function renderPrecios(){
     <input id="priceSearch" placeholder="Buscar producto…" value="${esc(priceSearch)}" aria-label="Buscar producto">
     <button class="btn" id="newPrice">+ Precio</button>
   </div>
-  ${prods.length?`<div class="card">${prods.map(([k,p])=>`<div class="prod">
+  ${prods.length?`<div class="card prods">${prods.map(([k,p])=>`<div class="prod">
       <button type="button" class="pname" data-prod="${esc(k)}" style="all:unset;display:flex;justify-content:space-between;gap:8px;width:100%;cursor:pointer;box-sizing:border-box"><span style="font-weight:700">${esc(p.name)} <span class="hint" style="font-weight:500">› ver detalle</span></span><span class="hint">${p.list.length} ${p.list.length===1?"comercio":"comercios"}</span></button>
       ${p.list.map((s,n)=>{const old=(Date.now()-s.at)/864e5>STALE_DAYS; return `<div class="storeRow ${n===0&&p.list.length>1?"best":""}">
         <span class="s">${esc(s.store)}${n===0&&p.list.length>1?`<span class="best-label">Mejor precio</span>`:""}<br><span class="hint ${old?"stale":""}">${s.unit&&s.unit!=="unidad"?"por "+esc(s.unit)+" · ":""}${ago(s.at)} · ${esc(nameOf(s.by))}</span></span>
@@ -454,12 +472,12 @@ function renderCompras(){
     <button class="btn ghost" id="galBtn" style="flex:1">Elegir foto de la galería</button>
     <button class="btn ghost" id="manualBtn" style="flex:1">Cargar a mano</button>
   </div>
-  ${dashboard()}
+  <div class="cols">${dashboard()}
   ${list.length?`<div class="card">${list.map(p=>`<button class="purchase" data-purchase="${p.id}">
       <div class="info"><div style="font-weight:700;overflow-wrap:anywhere">${esc(p.store||"Comercio sin nombre")}${p.branch?` <span class="hint">· ${esc(p.branch)}</span>`:""}</div>
       <div class="hint">${fmtDate(p.date)}${p.time?" · "+esc(p.time)+" h":""} · ${(p.lines||[]).length} productos${p.payer?` · pagó ${esc(p.payer)}`:""}</div></div>
       ${can("montos")?`<div class="amt">${money.format(+p.total||0)}</div>`:""}</button>`).join("")}</div>`
-  : `<div class="card"><div class="empty"><b>Todavía no hay compras</b>Después de ir al súper, sacale una foto al ticket. La app anota cada producto con su cantidad y precio, y la fecha, hora y lugar de la compra.</div></div>`}`;
+  : `<div class="card"><div class="empty"><b>Todavía no hay compras</b>Después de ir al súper, sacale una foto al ticket. La app anota cada producto con su cantidad y precio, y la fecha, hora y lugar de la compra.</div></div>`}</div>`;
 }
 
 async function shrink(file){
@@ -904,6 +922,11 @@ function bindView(){
 }
 
 document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>{tab=b.dataset.tab; store("cf-tab",tab); openItem=null; confirmClear=false; render(); scrollTo(0,0);});
+const goHome=()=>{ closeSheet(); tab="compras"; store("cf-tab",tab); openItem=null; render(); scrollTo(0,0); };
+document.getElementById("homeBtn").onclick=goHome;
+document.getElementById("brandHome").onclick=()=>{ if(myId) goHome(); };
+let exitArmed=false;
+document.getElementById("exitBtn").onclick=e=>{ const b=e.currentTarget; if(!exitArmed){ exitArmed=true; b.querySelector("span").textContent="¿Salir?"; b.style.borderColor="var(--danger)"; setTimeout(()=>{ exitArmed=false; b.querySelector("span").textContent="Salir"; b.style.borderColor=""; },4000); return; } window.CANASTA_LOGOUT&&window.CANASTA_LOGOUT(); };
 document.getElementById("meAvatar").onclick=()=>{ if(myId) profileSheet(); else toast("Entrá con tu cuenta para tener perfil."); };
 
 function needDb(){ if(!db){ toast("No hay conexión con la base de datos."); return false;} if(!myId){ toast("Tenés que entrar con tu cuenta."); return false;} return true; }
