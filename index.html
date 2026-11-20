@@ -609,7 +609,17 @@ const MES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","
 const compact = n => n>=1e6 ? (n/1e6).toLocaleString("es-AR",{maximumFractionDigits:1})+" M" : n>=1e3 ? Math.round(n/1e3).toLocaleString("es-AR")+" mil" : ""+Math.round(n);
 let sugSec = "Todas";
 function dashboard(){
-  if(!can("totales")) return can("sugerencias")?`<div class="card" style="padding:14px;display:flex;justify-content:space-between;align-items:center;gap:12px"><div class="hint">Mirá dónde conviene comprar cada producto.</div><button class="btn" id="sugBtn">Sugerencias</button></div>`:"";
+  if(!can("totales")){
+    const n0=new Date(), ym0=`${n0.getFullYear()}-${pad(n0.getMonth()+1)}`, sc={};
+    for(const p of purchases) if((p.date||"").startsWith(ym0)) for(const l of p.lines||[]) sc[l.sec||"Otros"]=(sc[l.sec||"Otros"]||0)+(+l.total||0);
+    const sl=Object.entries(sc).filter(([,v])=>v>0).sort((x,y)=>y[1]-x[1]); const tot=sl.reduce((x,[,v])=>x+v,0)||1, mx=Math.max(1,...sl.map(x=>x[1]));
+    return `<div class="card" style="padding:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div class="label">Qué se compró en ${n0.toLocaleDateString("es-AR",{month:"long"})}</div>${can("sugerencias")?`<button class="btn" id="sugBtn">Sugerencias</button>`:""}</div>
+      ${sl.length?`<div style="margin-top:8px">${sl.map(([sec,v])=>`<div style="display:grid;grid-template-columns:88px 1fr auto;gap:8px;align-items:center;font-size:.85rem;padding:3px 0">
+        <span>${esc(sec)}</span><span style="background:var(--bg);border-radius:4px;height:10px;overflow:hidden"><span style="display:block;height:100%;width:${(v/mx*100).toFixed(1)}%;background:${CAT_COLOR[sec]||"#7D8A80"}"></span></span>
+        <span style="font-variant-numeric:tabular-nums;font-weight:600">${Math.round(v/tot*100)}%</span></div>`).join("")}</div>`:`<div class="hint" style="margin-top:6px">Todavía no hay compras este mes.</div>`}
+    </div>`;
+  }
   const now=new Date(); const months=[];
   for(let k=5;k>=0;k--){ const d=new Date(now.getFullYear(),now.getMonth()-k,1); months.push({ym:`${d.getFullYear()}-${pad(d.getMonth()+1)}`,label:MES[d.getMonth()],total:0,n:0}); }
   const byYm=Object.fromEntries(months.map(m=>[m.ym,m]));
