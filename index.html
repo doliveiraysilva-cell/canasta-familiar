@@ -399,12 +399,24 @@ function prorate(lines, disc){
     return pct ? {...o, listUnit:l.unit, listTotal:l.total, unit:Math.round(l.unit*(1-pct)*100)/100, total:Math.round(l.total*(1-pct)*100)/100} : o; });
   return {lines:out, pct, sub};
 }
-const normInv = v => String(v||"").replace(/[^0-9a-z]/gi,"").replace(/^0+/,"").toLowerCase();
-function findDuplicate(t){
-  const inv=normInv(t.invoice);
+const digits = v => String(v||"").replace(/\D/g,"");
+const storeKey = v => key(v).split(" ")[0] || "";
+// Una factura se considera repetida si coincide el número (aunque esté escrito distinto),
+// o si es del mismo comercio, mismo día y mes, y mismo total o mismos productos.
+function findDuplicate(t, lines){
+  const inv = digits(t.invoice);
+  const fp = ls => (ls||[]).map(l=>key(l.desc)).filter(Boolean).sort().join("|");
+  const tfp = lines ? fp(lines) : "";
   return purchases.find(p=>{
-    if(inv && p.invoice && normInv(p.invoice)===inv && (!t.store || !p.store || key(p.store)===key(t.store))) return true;
-    return t.date && t.time && p.date===t.date && p.time===t.time && key(p.store)===key(t.store) && Math.abs((+p.total||0)-(+t.total||0))<1;
+    const pinv = digits(p.invoice);
+    if(inv.length>=5 && pinv.length>=5 && (inv===pinv || inv.slice(-7)===pinv.slice(-7))) return true;
+    const sameStore = !t.store || !p.store || storeKey(p.store)===storeKey(t.store);
+    const sameMD = t.date && p.date && t.date.slice(5)===p.date.slice(5);
+    if(!sameStore || !sameMD) return false;
+    const tt = +t.total||0;
+    if(tt>0 && [p.ticketTotal,p.total].some(v=>Math.abs((+v||0)-tt)<1)) return true;
+    if(tfp && (p.lines||[]).length>=2 && fp(p.lines)===tfp) return true;
+    return false;
   });
 }
 function dupToast(p){ toast(`Esta factura ya está cargada: ${p.store||"compra"} del ${fmtDate(p.date)}${p.time?" "+p.time:""}, por ${money.format(+p.total||0)}, cargada por ${nameOf(p.by)}.`); }
@@ -477,7 +489,7 @@ async function onPhoto(file){
   if(!data || data.error || !Array.isArray(data.lines)){ closeSheet(); toast("Esa foto no parece un ticket. Probá de nuevo con el ticket completo."); return; }
   const lines = data.lines.map(l=>{ const qty=parseAR(l.qty)||1; let total=parseAR(l.total); let unit=parseAR(l.unit); if(!unit&&total) unit=total/qty; if(!total&&unit) total=unit*qty; const sec = SEC_NAMES.includes(l.sec)?l.sec:"Otros"; return {desc:String(l.desc||"").trim(),name:String(l.name||"").trim(),sec,qty,unit:Math.round(unit*100)/100,total:Math.round(total*100)/100}; }).filter(l=>l.desc);
   const parsed={invoice:String(data.invoice||"").trim(),store:String(data.store||"").trim(),date:/^\d{4}-\d{2}-\d{2}$/.test(data.date||"")?data.date:"",time:/^\d{1,2}:\d{2}/.test(data.time||"")?data.time.slice(0,5):"",total:parseAR(data.total)};
-  const dupe=findDuplicate(parsed); if(dupe){ closeSheet(); dupToast(dupe); return; }
+  const dupe=findDuplicate(parsed, data.lines); if(dupe){ closeSheet(); dupToast(dupe); return; }
   let readDate = parsed.date, dateWarn = "";
   // La IA a veces se equivoca solo en el año: si con el año actual (o el anterior) la fecha cae en los últimos 120 días, se corrige sola
   if(readDate && /^\d{4}-\d{2}-\d{2}$/.test(readDate)){ const y=new Date().getFullYear(), md=readDate.slice(4);
@@ -545,7 +557,7 @@ function reviewSheet(t, blob){
         if(blob && assets){ try{ photo=(await assets.upload(blob)).id; }catch(err){ console.warn(err); } }
         const date=document.getElementById("rfDate").value, time=document.getElementById("rfTime").value;
         const invoice=document.getElementById("rfInvoice").value.trim();
-        const dupe=findDuplicate({invoice,store:document.getElementById("rfStore").value.trim(),date,time,total:Math.round((sub-disc)*100)/100});
+        const dupe=findDuplicate({invoice,store:document.getElementById("rfStore").value.trim(),date,time,total:Math.round((sub-disc)*100)/100}, lines);
         if(dupe){ save.disabled=false; save.textContent="Guardar compra"; dupToast(dupe); return; }
         const doc={invoice,payer,store:document.getElementById("rfStore").value.trim(),branch:document.getElementById("rfBranch").value.trim(),date,time,ts:tsOf(date,time),
           total:Math.round(lines.reduce((a,l)=>a+l.total,0)*100)/100,ticketTotal:t.total||null,discount:disc||0,discountPct:Math.round(pct*10000)/100,lines,photo,by:myId,at:Date.now()};
