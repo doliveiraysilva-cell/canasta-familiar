@@ -442,7 +442,7 @@ async function shrink(file){
   } finally { URL.revokeObjectURL(url); }
 }
 
-const EXTRACT_PROMPT = () => `Leé esta factura o ticket de supermercado de Paraguay (guaraníes). Respondé SOLO con JSON compacto, sin espacios ni texto extra, con estas claves cortas:
+const EXTRACT_PROMPT = () => `Hoy es ${todayISO()}: la compra es de hoy o de días recientes, así que el año casi seguro es ${new Date().getFullYear()}. Leé esta factura o ticket de supermercado de Paraguay (guaraníes). Respondé SOLO con JSON compacto, sin espacios ni texto extra, con estas claves cortas:
 {"s":"comercio (ej: Areté)","b":"sucursal o dirección","f":"número de factura (ej: 009-019-0006400)","d":"AAAA-MM-DD de la fecha de emisión de la compra","h":"HH:MM de emisión","t":total pagado,"x":descuento sobre el total (0 si no hay),"l":[["descripción como figura","nombre genérico corto con marca y tamaño","sección",cantidad,precio unitario,total de la línea]]}
 Sección: una de ${SEC_NAMES.join(", ")}.
 Reglas: el punto separa miles y no hay decimales en guaraníes (16.050 = 16050); cantidades por peso con decimal (0,245 = 0.245). En facturas paraguayas cada producto ocupa dos renglones: código, descripción e IVA; abajo cantidad, precio bruto, precio neto y subtotal: usá precio neto y subtotal. Todos los descuentos (de un producto, "Descuentos varios", bancarios, promociones o al total) se suman en "x" como número positivo y NO van como línea. En "l" solo van productos con su precio sin descontar. No incluyas IVA, subtotales, timbrado ni medios de pago. La fecha es la de "Fecha y hora de emisión" de la compra; ignorá "Inicio de vigencia" del timbrado y cualquier otra fecha. Dato ilegible: "" o 0. Si no es un ticket: {"error":1}.`;
@@ -479,6 +479,9 @@ async function onPhoto(file){
   const parsed={invoice:String(data.invoice||"").trim(),store:String(data.store||"").trim(),date:/^\d{4}-\d{2}-\d{2}$/.test(data.date||"")?data.date:"",time:/^\d{1,2}:\d{2}/.test(data.time||"")?data.time.slice(0,5):"",total:parseAR(data.total)};
   const dupe=findDuplicate(parsed); if(dupe){ closeSheet(); dupToast(dupe); return; }
   let readDate = parsed.date, dateWarn = "";
+  // La IA a veces se equivoca solo en el año: si con el año actual (o el anterior) la fecha cae en los últimos 120 días, se corrige sola
+  if(readDate && /^\d{4}-\d{2}-\d{2}$/.test(readDate)){ const y=new Date().getFullYear(), md=readDate.slice(4);
+    for(const yy of [y, y-1]){ const t=Date.parse(yy+md+"T12:00:00"); if(isFinite(t) && t<=Date.now()+2*864e5 && t>=Date.now()-120*864e5){ readDate=yy+md; break; } } }
   { const dd = Date.parse(readDate+"T12:00:00"); if(!readDate || !isFinite(dd) || dd > Date.now()+2*864e5 || dd < Date.now()-120*864e5){ dateWarn = readDate ? `La fecha leída (${fmtDate(readDate)}) no parece la de hoy: puse la fecha de hoy, revisala.` : "No se leyó la fecha: puse la de hoy, revisala."; readDate = todayISO(); } }
   reviewSheet({dateWarn,invoice:parsed.invoice,store:String(data.store||"").trim(),branch:String(data.branch||"").trim(),date:readDate,time:/^\d{1,2}:\d{2}/.test(data.time||"")?data.time.slice(0,5):"",total:parseAR(data.total)||null,discount:discountOf(lines,parseAR(data.discount),parseAR(data.total)),lines:lines.filter(l=>l.total>0)}, blob);
 }
