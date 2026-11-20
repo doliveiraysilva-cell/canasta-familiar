@@ -150,7 +150,7 @@ async function gate(){
     joinScreen(anyone === false); return;
   }
   const { data: own } = await sb.from("config").select("data").eq("id", "owner").maybeSingle();
-  ownerId = own && own.data && own.data.id;
+  ownerId = own && own.data && own.data.id; window.CANASTA_OWNER = ownerId;
   nav.hidden = false;
   if(!started){ started = true; window.startApp(); }
 }
