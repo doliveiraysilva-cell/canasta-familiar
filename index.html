@@ -331,12 +331,29 @@ function renderPrecios(){
     <button class="btn" id="newPrice">+ Precio</button>
   </div>
   ${prods.length?`<div class="card">${prods.map(([k,p])=>`<div class="prod">
-      <div class="pname"><span>${esc(p.name)}</span><span class="hint">${p.list.length} ${p.list.length===1?"comercio":"comercios"}</span></div>
+      <button type="button" class="pname" data-prod="${esc(k)}" style="all:unset;display:flex;justify-content:space-between;gap:8px;width:100%;cursor:pointer;box-sizing:border-box"><span style="font-weight:700">${esc(p.name)} <span class="hint" style="font-weight:500">› ver detalle</span></span><span class="hint">${p.list.length} ${p.list.length===1?"comercio":"comercios"}</span></button>
       ${p.list.map((s,n)=>{const old=(Date.now()-s.at)/864e5>STALE_DAYS; return `<div class="storeRow ${n===0&&p.list.length>1?"best":""}">
         <span class="s">${esc(s.store)}${n===0&&p.list.length>1?`<span class="best-label">Mejor precio</span>`:""}<br><span class="hint ${old?"stale":""}">${s.unit&&s.unit!=="unidad"?"por "+esc(s.unit)+" · ":""}${ago(s.at)} · ${esc(nameOf(s.by))}</span></span>
         <span class="p">${money.format(s.price)}${s.ticket?`<span class="hint"> · ticket</span>`:`<button class="x" data-delprice="${s.id}" aria-label="Borrar precio">×</button>`}</span></div>`}).join("")}
     </div>`).join("")}</div>`
   : `<div class="card"><div class="empty"><b>${q?"No hay precios para esa búsqueda":"Todavía no hay precios"}</b>Cuando alguien vaya al súper, que cargue lo que pagó. Así comparamos comercios y sabemos dónde conviene.</div></div>`}`;
+}
+
+function prodSheet(k){
+  const rows=[];
+  for(const pu of purchases) for(const l of pu.lines||[]) if(key(l.name||l.desc)===k) rows.push({pid:pu.id,name:l.name||l.desc,desc:l.desc,store:pu.store+(pu.branch?" · "+pu.branch:""),date:pu.date,time:pu.time,qty:l.qty,unit:l.unit,listUnit:l.listUnit,total:l.total,invoice:pu.invoice,by:pu.by,payer:pu.payer,sort:pu.ts||pu.at});
+  for(const p of prices) if(key(p.product)===k) rows.push({name:p.product,desc:p.product,store:p.store,date:p.at?new Date(p.at).toISOString().slice(0,10):"",unit:p.price,per:p.unit,by:p.by,manual:true,sort:p.at});
+  rows.sort((a,b)=>(b.sort||0)-(a.sort||0));
+  const min=Math.min(...rows.map(r=>r.unit||Infinity));
+  openSheet(`<h2>${esc(rows[0]?rows[0].name:"Producto")}</h2><div class="hint">${rows.length} ${rows.length===1?"registro":"registros"}, del más nuevo al más viejo.</div>
+    <div>${rows.map(r=>`<div class="rline" ${r.pid?`data-openp="${r.pid}" style="cursor:pointer"`:""}><span style="min-width:0;overflow-wrap:anywhere"><b>${esc(r.desc)}</b><br>
+      <span class="hint">${esc(r.store)} · ${fmtDate(r.date)}${r.time?" "+esc(r.time)+" h":""}${r.invoice?" · Fact. "+esc(r.invoice):""}${r.manual?" · cargado a mano":""}</span><br>
+      <span class="hint">${r.qty!=null?num2(r.qty)+" × ":""}${money.format(r.unit||0)}${r.per&&r.per!=="unidad"?" por "+esc(r.per):""}${r.listUnit?` (lista ${money.format(r.listUnit)})`:""} · ${esc(r.payer?"pagó "+r.payer:"cargó "+nameOf(r.by))}</span></span>
+      <span class="p" style="text-align:right">${money.format(r.unit||0)}${r.unit===min&&rows.length>1?`<br><span class="best-label">Mejor</span>`:""}</span></div>`).join("")||`<div class="empty">Sin registros.</div>`}</div>
+    <div class="hint">Tocá una compra para ver el ticket completo.</div>
+    <div class="btns"><button class="btn" data-close>Cerrar</button></div>`, ()=>{
+      document.querySelectorAll("[data-openp]").forEach(b=>b.onclick=()=>{ const id=b.dataset.openp; closeSheet(); setTimeout(()=>purchaseSheet(id),50); });
+    });
 }
 
 function renderFamilia(){
@@ -876,6 +893,7 @@ function bindView(){
   view.querySelectorAll("[data-purchase]").forEach(b=>b.onclick=()=>purchaseSheet(b.dataset.purchase));
   const np=document.getElementById("newPrice"); if(np) np.onclick=()=>priceSheet(priceSearch);
   view.querySelectorAll("[data-delprice]").forEach(b=>b.onclick=()=>delPrice(b.dataset.delprice));
+  view.querySelectorAll("[data-prod]").forEach(b=>b.onclick=()=>prodSheet(b.dataset.prod));
   const saveSettings=async patch=>{ if(!needDb()) return; const cur={sections:customSecs.slice(),payers:PAYERS.slice(),...(settingsDoc||{})}; try{ await db.doc("promos/_ajustes").set({...cur,...patch}); }catch(e){ writeErr(e); } };
   const sf=document.getElementById("secForm"); if(sf) sf.onsubmit=e=>{ e.preventDefault(); const n=document.getElementById("secName").value.trim(); if(!n) return; if(SEC_NAMES.some(x=>key(x)===key(n))){ toast("Ese tipo ya existe"); return; } saveSettings({sections:[...customSecs,n]}); toast(`Se agregó "${n}"`); };
   view.querySelectorAll("[data-delsec]").forEach(b=>b.onclick=()=>saveSettings({sections:customSecs.filter(x=>key(x)!==key(b.dataset.delsec))}));
