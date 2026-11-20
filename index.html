@@ -384,6 +384,21 @@ function parseAR(v){
 }
 const num2 = n => (Math.round((+n||0)*100)/100).toLocaleString("es-AR",{minimumFractionDigits:0,maximumFractionDigits:3});
 
+// Todo descuento se reparte entre los productos: líneas negativas + descuento informado + diferencia con el total pagado
+function discountOf(lines, declared, paid){
+  const neg = lines.filter(l=>l.total<0).reduce((a,l)=>a-l.total,0);
+  const pos = lines.filter(l=>l.total>0).reduce((a,l)=>a+l.total,0);
+  let disc = Math.abs(declared||0) + neg;
+  if(paid>0 && pos-disc-paid>=1 && pos-disc-paid < pos*0.6) disc = pos-paid;
+  return Math.round(disc*100)/100;
+}
+function prorate(lines, disc){
+  const base = lines.map(l=>({...l, unit:l.listUnit??l.unit, total:l.listTotal??l.total, listUnit:undefined, listTotal:undefined}));
+  const sub = base.reduce((a,l)=>a+l.total,0); const pct = disc>0&&sub>0 ? Math.min(disc/sub,1) : 0;
+  const out = base.map(l=>{ const o={...l}; delete o.listUnit; delete o.listTotal;
+    return pct ? {...o, listUnit:l.unit, listTotal:l.total, unit:Math.round(l.unit*(1-pct)*100)/100, total:Math.round(l.total*(1-pct)*100)/100} : o; });
+  return {lines:out, pct, sub};
+}
 const normInv = v => String(v||"").replace(/[^0-9a-z]/gi,"").replace(/^0+/,"").toLowerCase();
 function findDuplicate(t){
   const inv=normInv(t.invoice);
@@ -428,9 +443,9 @@ async function shrink(file){
 }
 
 const EXTRACT_PROMPT = () => `Leé esta factura o ticket de supermercado de Paraguay (guaraníes). Respondé SOLO con JSON compacto, sin espacios ni texto extra, con estas claves cortas:
-{"s":"comercio (ej: Areté)","b":"sucursal o dirección","f":"número de factura (ej: 009-019-0006400)","d":"AAAA-MM-DD","h":"HH:MM","t":total pagado,"x":descuento sobre el total (0 si no hay),"l":[["descripción como figura","nombre genérico corto con marca y tamaño","sección",cantidad,precio unitario,total de la línea]]}
+{"s":"comercio (ej: Areté)","b":"sucursal o dirección","f":"número de factura (ej: 009-019-0006400)","d":"AAAA-MM-DD de la fecha de emisión de la compra","h":"HH:MM de emisión","t":total pagado,"x":descuento sobre el total (0 si no hay),"l":[["descripción como figura","nombre genérico corto con marca y tamaño","sección",cantidad,precio unitario,total de la línea]]}
 Sección: una de ${SEC_NAMES.join(", ")}.
-Reglas: el punto separa miles y no hay decimales en guaraníes (16.050 = 16050); cantidades por peso con decimal (0,245 = 0.245). En facturas paraguayas cada producto ocupa dos renglones: código, descripción e IVA; abajo cantidad, precio bruto, precio neto y subtotal: usá precio neto y subtotal. Descuentos de un producto: línea con total negativo. Descuentos al final sobre el total: en "x". No incluyas IVA, subtotales, timbrado ni medios de pago. Dato ilegible: "" o 0. Si no es un ticket: {"error":1}.`;
+Reglas: el punto separa miles y no hay decimales en guaraníes (16.050 = 16050); cantidades por peso con decimal (0,245 = 0.245). En facturas paraguayas cada producto ocupa dos renglones: código, descripción e IVA; abajo cantidad, precio bruto, precio neto y subtotal: usá precio neto y subtotal. Todos los descuentos (de un producto, "Descuentos varios", bancarios, promociones o al total) se suman en "x" como número positivo y NO van como línea. En "l" solo van productos con su precio sin descontar. No incluyas IVA, subtotales, timbrado ni medios de pago. La fecha es la de "Fecha y hora de emisión" de la compra; ignorá "Inicio de vigencia" del timbrado y cualquier otra fecha. Dato ilegible: "" o 0. Si no es un ticket: {"error":1}.`;
 
 async function onPhoto(file){
   if(!file) return;
@@ -463,7 +478,9 @@ async function onPhoto(file){
   const lines = data.lines.map(l=>{ const qty=parseAR(l.qty)||1; let total=parseAR(l.total); let unit=parseAR(l.unit); if(!unit&&total) unit=total/qty; if(!total&&unit) total=unit*qty; const sec = SEC_NAMES.includes(l.sec)?l.sec:"Otros"; return {desc:String(l.desc||"").trim(),name:String(l.name||"").trim(),sec,qty,unit:Math.round(unit*100)/100,total:Math.round(total*100)/100}; }).filter(l=>l.desc);
   const parsed={invoice:String(data.invoice||"").trim(),store:String(data.store||"").trim(),date:/^\d{4}-\d{2}-\d{2}$/.test(data.date||"")?data.date:"",time:/^\d{1,2}:\d{2}/.test(data.time||"")?data.time.slice(0,5):"",total:parseAR(data.total)};
   const dupe=findDuplicate(parsed); if(dupe){ closeSheet(); dupToast(dupe); return; }
-  reviewSheet({invoice:parsed.invoice,store:String(data.store||"").trim(),branch:String(data.branch||"").trim(),date:/^\d{4}-\d{2}-\d{2}$/.test(data.date||"")?data.date:todayISO(),time:/^\d{1,2}:\d{2}/.test(data.time||"")?data.time.slice(0,5):"",total:parseAR(data.total)||null,discount:Math.abs(parseAR(data.discount))||0,lines}, blob);
+  let readDate = parsed.date, dateWarn = "";
+  { const dd = Date.parse(readDate+"T12:00:00"); if(!readDate || !isFinite(dd) || dd > Date.now()+2*864e5 || dd < Date.now()-120*864e5){ dateWarn = readDate ? `La fecha leída (${fmtDate(readDate)}) no parece la de hoy: puse la fecha de hoy, revisala.` : "No se leyó la fecha: puse la de hoy, revisala."; readDate = todayISO(); } }
+  reviewSheet({dateWarn,invoice:parsed.invoice,store:String(data.store||"").trim(),branch:String(data.branch||"").trim(),date:readDate,time:/^\d{1,2}:\d{2}/.test(data.time||"")?data.time.slice(0,5):"",total:parseAR(data.total)||null,discount:discountOf(lines,parseAR(data.discount),parseAR(data.total)),lines:lines.filter(l=>l.total>0)}, blob);
 }
 document.getElementById("camInput").onchange=e=>{ const f=e.target.files[0]; e.target.value=""; onPhoto(f); };
 document.getElementById("galInput").onchange=e=>{ const f=e.target.files[0]; e.target.value=""; onPhoto(f); };
@@ -484,6 +501,7 @@ function reviewSheet(t, blob){
       <div><div class="label" style="margin-bottom:6px">¿Quién paga?</div><div class="chips" id="rfPayer">${PAYERS.map(n=>`<button type="button" class="chip" data-payer="${esc(n)}" aria-pressed="${n===t.payer}">${esc(n)}</button>`).join("")}</div></div>
       <datalist id="dlRS">${stores.map(s=>`<option value="${esc(s)}">`).join("")}</datalist>
       <div class="grid2"><input id="rfDate" type="date" value="${esc(t.date)}" required aria-label="Fecha"><input id="rfTime" type="time" value="${esc(t.time)}" aria-label="Hora"></div>
+      ${t.dateWarn?`<div class="hint stale">${esc(t.dateWarn)}</div>`:""}
       <div class="label">Productos</div>
       <div id="rfLines">${t.lines.map(lineHtml).join("")}</div>
       <button type="button" class="btn ghost" id="rfAdd">+ Agregar línea</button>
@@ -550,7 +568,13 @@ function purchaseSheet(id){
     ${p.discount?`<div class="hint">Incluye descuento de ${money.format(p.discount)} (${String(p.discountPct).replace(".",",")}%) repartido en cada producto.</div>`:""}
     <div class="totrow"><span>Total</span><span>${money.format(+p.total||0)}</span></div>
     ${p.photo?`<details><summary class="hint" style="cursor:pointer">Ver foto del ticket</summary><img class="receipt-img" data-photo="${esc(p.photo)}" alt="Foto del ticket" style="margin-top:8px"></details>`:""}
+    <form id="pdForm" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap" autocomplete="off"><label class="hint" for="pdDate" style="flex:1 1 140px">Fecha de la compra</label><input id="pdDate" type="date" value="${esc(p.date||"")}" style="flex:1 1 110px"><label class="hint" for="pdDisc" style="flex:1 1 140px">Descuento total del ticket (Gs.)</label><input id="pdDisc" inputmode="decimal" value="${p.discount?esc(num2(p.discount)):""}" placeholder="0" style="flex:1 1 110px"><button class="btn ghost" type="submit">Guardar cambios</button></form>
     <div class="btns"><button class="btn danger" id="pDel">Eliminar compra</button><button class="btn" data-close>Cerrar</button></div>`, ()=>{
+      document.getElementById("pdForm").onsubmit=async e=>{ e.preventDefault(); if(!needDb()) return;
+        const disc=Math.abs(parseAR(document.getElementById("pdDisc").value));
+        const r=prorate(p.lines||[], disc);
+        const nd=document.getElementById("pdDate").value||p.date;
+        try{ await db.doc("purchases/"+id).update({date:nd,ts:tsOf(nd,p.time),lines:r.lines,discount:disc,discountPct:Math.round(r.pct*10000)/100,total:Math.round((r.sub-disc)*100)/100}); closeSheet(); toast(disc?`Descuento de ${money.format(disc)} repartido en ${r.lines.length} productos`:"Descuento quitado"); }catch(err){ writeErr(err); } };
       const im=document.querySelector("[data-photo]"); if(im&&window.CANASTA_PHOTO_URL) window.CANASTA_PHOTO_URL(im.dataset.photo).then(u=>{ if(u) im.src=u; });
       document.getElementById("pDel").onclick=async e=>{
         if(!armed){ armed=true; e.target.textContent="¿Seguro? Tocá de nuevo"; return; }
